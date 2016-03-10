@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <item
+        android:id="@+id/action_go_up"
+        android:title="Go up"
+        android:icon="@drawable/ic_navigate_before_24dp"
+        app:showAsAction="ifRoom"/>
+
+    <item
+        android:id="@+id/action_done"
+        android:title="@android:string/ok"
+        android:icon="@drawable/ic_done_white_24dp"
+        app:showAsAction="always"/>
+
+    <item
+        android:id="@+id/action_cancel"
+        android:title="@android:string/cancel"
+        android:icon="@drawable/ic_clear_white_24dp"
+        app:showAsAction="ifRoom"/>
+
+</menu>

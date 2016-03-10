@@ -1,17 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/root"
     android:orientation="vertical"
     android:layout_width="match_parent"
     android:layout_height="@dimen/item_size"
-    android:background="?attr/selectableItemBackground"
     android:gravity="center_vertical">
 
     <LinearLayout
+        android:id="@+id/root"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:gravity="center_vertical"
+        android:background="?attr/selectableItemBackground"
         android:orientation="horizontal">
 
         <ImageView
@@ -19,7 +19,7 @@
             android:layout_width="@dimen/list_item_icon_size"
             android:layout_height="@dimen/list_item_icon_size"
             android:scaleType="center"
-            android:src="@drawable/ic_file_24dp"
+            android:src="@drawable/ic_insert_drive_file_24dp"
             android:tint="@color/textColor"/>
 
         <TextView
@@ -42,7 +42,8 @@
             android:id="@+id/check"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_gravity="center"/>
+            android:layout_gravity="center"
+            android:background="?attr/selectableItemBackgroundBorderless"/>
 
         </FrameLayout>
 
