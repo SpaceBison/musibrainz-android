@@ -48,6 +48,8 @@ public class FileChooserActivity extends AppCompatActivity {
                 startActivityForResult(intent, CHOOSE_FILE_REQUEST_CODE);
             }
         });
+
+        0x7f
     }
 
     @Override

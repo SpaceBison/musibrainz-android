@@ -8,6 +8,12 @@
     <color name="textColor">#de000000</color>
     <color name="textColorSecondary">#8a000000</color>
     <color name="textColorHint">#61000000</color>
-    <color name="textColorLight">#ffffff</color>
+    <color name="textColorLight">#ffffffff</color>
     <color name="dividerColor">#1f000000</color>
+
+    <color name="textColorDark">#ffffffff</color>
+    <color name="textColorSecondaryDark">#b3ffffff</color>
+    <color name="textColorHintDark">#7fffffff</color>
+    <color name="textColorLightDark">#ffffffff</color>
+    <color name="dividerColorDark">#1fffffff</color>
 </resources>
