@@ -49,7 +49,7 @@ public class FileChooserActivity extends AppCompatActivity {
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         if (requestCode == CHOOSE_FILE_REQUEST_CODE && resultCode == RESULT_OK) {
-            Set<File> chosenFiles = data.getParcelableExtra(FilePickerActivity.EXTRA_FILES);
+            Set<File> chosenFiles = (Set<File>) data.getSerializableExtra(FilePickerActivity.EXTRA_FILES);
             mAdapter.getFiles().addAll(chosenFiles);
             mAdapter.notifyDataSetChanged();
         }

@@ -6,7 +6,7 @@
     <item
         android:id="@+id/action_go_up"
         android:title="Go up"
-        android:icon="@drawable/ic_navigate_before_24dp"
+        android:icon="@drawable/ic_navigate_before_white_24dp"
         app:showAsAction="ifRoom"/>
 
     <item
