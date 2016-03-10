@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">Musicbrainz</string>
+    <string name="title_activity_file_chooser">FileChooserActivity</string>
+</resources>

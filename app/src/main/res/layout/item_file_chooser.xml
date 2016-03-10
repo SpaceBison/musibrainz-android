@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/root"
+    android:orientation="vertical"
+    android:layout_width="match_parent"
+    android:layout_height="@dimen/item_size"
+    android:background="?attr/selectableItemBackground"
+    android:gravity="center_vertical">
+
+    <TextView
+        android:id="@+id/text_primary"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:layout_marginLeft="@dimen/list_item_horizontal_margin"
+        android:layout_marginRight="@dimen/list_item_horizontal_margin"
+        android:gravity="bottom"
+        android:ellipsize="marquee"
+        android:singleLine="true"
+        android:textColor="@color/textColor"
+        android:textStyle="bold"
+        android:textSize="20sp"
+        android:text="Title"/>
+
+    <TextView
+        android:id="@+id/text_secondary"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:layout_marginLeft="@dimen/list_item_horizontal_margin"
+        android:layout_marginRight="@dimen/list_item_horizontal_margin"
+        android:gravity="top"
+        android:ellipsize="marquee"
+        android:singleLine="true"
+        android:textColor="@color/textColorSecondary"
+        android:textSize="16sp"
+        android:text="path/to/the/file"/>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="@color/dividerColor"/>
+
+</LinearLayout>
