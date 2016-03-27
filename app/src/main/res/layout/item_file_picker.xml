@@ -3,7 +3,7 @@
     xmlns:android="http://schemas.android.com/apk/res/android"
     android:orientation="vertical"
     android:layout_width="match_parent"
-    android:layout_height="@dimen/item_size"
+    android:layout_height="40dp"
     android:gravity="center_vertical">
 
     <LinearLayout
@@ -16,27 +16,27 @@
 
         <ImageView
             android:id="@+id/ic_file"
-            android:layout_width="@dimen/list_item_icon_size"
-            android:layout_height="@dimen/list_item_icon_size"
+            android:layout_width="@dimen/material_list_item_icon_size"
+            android:layout_height="@dimen/material_list_item_icon_size"
             android:scaleType="center"
             android:src="@drawable/ic_insert_drive_file_24dp"
             android:tint="@color/textColor"/>
 
         <TextView
-            android:id="@+id/text_primary"
+            android:id="@+id/text"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:ellipsize="marquee"
+            android:ellipsize="middle"
             android:singleLine="true"
             android:textColor="@color/textColor"
             android:textStyle="bold"
-            android:textSize="20sp"
+            android:textSize="15sp"
             android:text="Filename.ext"/>
 
         <FrameLayout
-            android:layout_width="@dimen/list_item_icon_size"
-            android:layout_height="@dimen/list_item_icon_size">
+            android:layout_width="@dimen/material_list_item_icon_size"
+            android:layout_height="@dimen/material_list_item_icon_size">
 
         <CheckBox
             android:id="@+id/check"

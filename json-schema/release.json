@@ -1,0 +1,451 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "id": "/",
+  "type": "object",
+  "properties": {
+    "aliases": {
+      "id": "aliases",
+      "type": "array",
+      "items": {}
+    },
+    "annotation": {
+      "id": "annotation",
+      "type": "string"
+    },
+    "artist-credit": {
+      "id": "artist-credit",
+      "type": "array",
+      "items": {
+        "id": "0",
+        "type": "object",
+        "properties": {
+          "artist": {
+            "id": "artist",
+            "type": "object",
+            "properties": {
+              "aliases": {
+                "id": "aliases",
+                "type": "array",
+                "items": {
+                  "id": "9",
+                  "type": "object",
+                  "properties": {
+                    "locale": {
+                      "id": "locale",
+                      "type": "string"
+                    },
+                    "name": {
+                      "id": "name",
+                      "type": "string"
+                    },
+                    "primary": {
+                      "id": "primary",
+                      "type": "boolean"
+                    },
+                    "sort-name": {
+                      "id": "sort-name",
+                      "type": "string"
+                    },
+                    "type": {
+                      "id": "type",
+                      "type": "null"
+                    }
+                  }
+                }
+              },
+              "annotation": {
+                "id": "annotation",
+                "type": "null"
+              },
+              "disambiguation": {
+                "id": "disambiguation",
+                "type": "string"
+              },
+              "id": {
+                "id": "id",
+                "type": "string"
+              },
+              "name": {
+                "id": "name",
+                "type": "string"
+              },
+              "sort-name": {
+                "id": "sort-name",
+                "type": "string"
+              }
+            }
+          },
+          "joinphrase": {
+            "id": "joinphrase",
+            "type": "string"
+          },
+          "name": {
+            "id": "name",
+            "type": "string"
+          }
+        }
+      }
+    },
+    "asin": {
+      "id": "asin",
+      "type": "null"
+    },
+    "barcode": {
+      "id": "barcode",
+      "type": "null"
+    },
+    "country": {
+      "id": "country",
+      "type": "string"
+    },
+    "cover-art-archive": {
+      "id": "cover-art-archive",
+      "type": "object",
+      "properties": {
+        "artwork": {
+          "id": "artwork",
+          "type": "boolean"
+        },
+        "back": {
+          "id": "back",
+          "type": "boolean"
+        },
+        "count": {
+          "id": "count",
+          "type": "integer"
+        },
+        "darkened": {
+          "id": "darkened",
+          "type": "boolean"
+        },
+        "front": {
+          "id": "front",
+          "type": "boolean"
+        }
+      }
+    },
+    "date": {
+      "id": "date",
+      "type": "string"
+    },
+    "disambiguation": {
+      "id": "disambiguation",
+      "type": "string"
+    },
+    "id": {
+      "id": "id",
+      "type": "string"
+    },
+    "media": {
+      "id": "media",
+      "type": "array",
+      "items": {
+        "id": "0",
+        "type": "object",
+        "properties": {
+          "discs": {
+            "id": "discs",
+            "type": "array",
+            "items": {}
+          },
+          "format": {
+            "id": "format",
+            "type": "string"
+          },
+          "position": {
+            "id": "position",
+            "type": "integer"
+          },
+          "title": {
+            "id": "title",
+            "type": "string"
+          },
+          "track-count": {
+            "id": "track-count",
+            "type": "integer"
+          },
+          "track-offset": {
+            "id": "track-offset",
+            "type": "integer"
+          },
+          "tracks": {
+            "id": "tracks",
+            "type": "array",
+            "items": {
+              "id": "12",
+              "type": "object",
+              "properties": {
+                "artist-credit": {
+                  "id": "artist-credit",
+                  "type": "array",
+                  "items": {
+                    "id": "1",
+                    "type": "object",
+                    "properties": {
+                      "artist": {
+                        "id": "artist",
+                        "type": "object",
+                        "properties": {
+                          "aliases": {
+                            "id": "aliases",
+                            "type": "array",
+                            "items": {
+                              "id": "1",
+                              "type": "object",
+                              "properties": {
+                                "locale": {
+                                  "id": "locale",
+                                  "type": "null"
+                                },
+                                "name": {
+                                  "id": "name",
+                                  "type": "string"
+                                },
+                                "primary": {
+                                  "id": "primary",
+                                  "type": "null"
+                                },
+                                "sort-name": {
+                                  "id": "sort-name",
+                                  "type": "string"
+                                },
+                                "type": {
+                                  "id": "type",
+                                  "type": "null"
+                                }
+                              }
+                            }
+                          },
+                          "annotation": {
+                            "id": "annotation",
+                            "type": "null"
+                          },
+                          "disambiguation": {
+                            "id": "disambiguation",
+                            "type": "string"
+                          },
+                          "id": {
+                            "id": "id",
+                            "type": "string"
+                          },
+                          "name": {
+                            "id": "name",
+                            "type": "string"
+                          },
+                          "sort-name": {
+                            "id": "sort-name",
+                            "type": "string"
+                          }
+                        }
+                      },
+                      "joinphrase": {
+                        "id": "joinphrase",
+                        "type": "string"
+                      },
+                      "name": {
+                        "id": "name",
+                        "type": "string"
+                      }
+                    }
+                  }
+                },
+                "id": {
+                  "id": "id",
+                  "type": "string"
+                },
+                "length": {
+                  "id": "length",
+                  "type": "integer"
+                },
+                "number": {
+                  "id": "number",
+                  "type": "string"
+                },
+                "recording": {
+                  "id": "recording",
+                  "type": "object",
+                  "properties": {
+                    "aliases": {
+                      "id": "aliases",
+                      "type": "array",
+                      "items": {}
+                    },
+                    "annotation": {
+                      "id": "annotation",
+                      "type": "null"
+                    },
+                    "artist-credit": {
+                      "id": "artist-credit",
+                      "type": "array",
+                      "items": {
+                        "id": "1",
+                        "type": "object",
+                        "properties": {
+                          "artist": {
+                            "id": "artist",
+                            "type": "object",
+                            "properties": {
+                              "disambiguation": {
+                                "id": "disambiguation",
+                                "type": "string"
+                              },
+                              "id": {
+                                "id": "id",
+                                "type": "string"
+                              },
+                              "name": {
+                                "id": "name",
+                                "type": "string"
+                              },
+                              "sort-name": {
+                                "id": "sort-name",
+                                "type": "string"
+                              }
+                            }
+                          },
+                          "joinphrase": {
+                            "id": "joinphrase",
+                            "type": "string"
+                          },
+                          "name": {
+                            "id": "name",
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    "disambiguation": {
+                      "id": "disambiguation",
+                      "type": "string"
+                    },
+                    "id": {
+                      "id": "id",
+                      "type": "string"
+                    },
+                    "isrcs": {
+                      "id": "isrcs",
+                      "type": "array",
+                      "items": {
+                        "id": "0",
+                        "type": "string"
+                      }
+                    },
+                    "length": {
+                      "id": "length",
+                      "type": "integer"
+                    },
+                    "title": {
+                      "id": "title",
+                      "type": "string"
+                    },
+                    "video": {
+                      "id": "video",
+                      "type": "boolean"
+                    }
+                  }
+                },
+                "title": {
+                  "id": "title",
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "packaging": {
+      "id": "packaging",
+      "type": "null"
+    },
+    "quality": {
+      "id": "quality",
+      "type": "string"
+    },
+    "rating": {
+      "id": "rating",
+      "type": "object",
+      "properties": {
+        "value": {
+          "id": "value",
+          "type": "null"
+        },
+        "votes-count": {
+          "id": "votes-count",
+          "type": "integer"
+        }
+      }
+    },
+    "release-events": {
+      "id": "release-events",
+      "type": "array",
+      "items": {
+        "id": "0",
+        "type": "object",
+        "properties": {
+          "area": {
+            "id": "area",
+            "type": "object",
+            "properties": {
+              "disambiguation": {
+                "id": "disambiguation",
+                "type": "string"
+              },
+              "id": {
+                "id": "id",
+                "type": "string"
+              },
+              "iso-3166-1-codes": {
+                "id": "iso-3166-1-codes",
+                "type": "array",
+                "items": {
+                  "id": "0",
+                  "type": "string"
+                }
+              },
+              "name": {
+                "id": "name",
+                "type": "string"
+              },
+              "sort-name": {
+                "id": "sort-name",
+                "type": "string"
+              }
+            }
+          },
+          "date": {
+            "id": "date",
+            "type": "string"
+          }
+        }
+      }
+    },
+    "status": {
+      "id": "status",
+      "type": "string"
+    },
+    "tags": {
+      "id": "tags",
+      "type": "array",
+      "items": {}
+    },
+    "text-representation": {
+      "id": "text-representation",
+      "type": "object",
+      "properties": {
+        "language": {
+          "id": "language",
+          "type": "string"
+        },
+        "script": {
+          "id": "script",
+          "type": "string"
+        }
+      }
+    },
+    "title": {
+      "id": "title",
+      "type": "string"
+    }
+  }
+}

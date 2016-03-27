@@ -51,6 +51,7 @@ public class FilePickerAdapter extends RecyclerView.Adapter<FilePickerAdapter.Vi
     public void onBindViewHolder(ViewHolder holder, int position) {
         final File file = mFiles[position];
         holder.text.setText(file.getName());
+        holder.checkBox.setOnCheckedChangeListener(null);
         holder.checkBox.setChecked(mCheckedFiles.contains(file));
         holder.checkBox.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
@@ -127,7 +128,7 @@ public class FilePickerAdapter extends RecyclerView.Adapter<FilePickerAdapter.Vi
     public static class ViewHolder extends RecyclerView.ViewHolder {
         @Bind(R.id.root)
         public View root;
-        @Bind(R.id.text_primary)
+        @Bind(R.id.text)
         public TextView text;
         @Bind(R.id.ic_file)
         public ImageView icon;
