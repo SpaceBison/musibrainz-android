@@ -39,7 +39,7 @@ public class FilePickerActivity extends AppCompatActivity implements FilePickerA
         setSupportActionBar(mToolbar);
 
         final File dir = (File) getIntent().getSerializableExtra(EXTRA_DIR);
-        mAdapter = new FilePickerAdapter(dir );
+        mAdapter = new FilePickerAdapter(dir);
         mAdapter.setListener(this);
         mRecyclerView.setLayoutManager(new LinearLayoutManager(this));
         mRecyclerView.setAdapter(mAdapter);

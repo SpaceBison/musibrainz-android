@@ -23,19 +23,17 @@ import butterknife.ButterKnife;
  */
 public class TaggerFragment extends Fragment {
     private static final String TAG = "TaggerFragment";
+
     private final ExecutorService mExecutor = Executors.newSingleThreadExecutor();
+    private final TaggerListAdapter mAdapter = new TaggerListAdapter();
 
     @Bind(R.id.recycler_view)
     RecyclerView mRecyclerView;
 
-    private final TaggerListAdapter mAdapter = new TaggerListAdapter();
-    private final RecyclerViewAdapterNotifier mAdapterNotifier = new RecyclerViewAdapterNotifier(mAdapter);
-    private int mPort = 8000;
-
     @Nullable
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
-        View view = inflater.inflate(R.layout.fragment_untagged_list, container, false);
+        View view = inflater.inflate(R.layout.fragment_tagger, container, false);
         ButterKnife.bind(this, view);
 
         mRecyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
@@ -56,5 +54,21 @@ public class TaggerFragment extends Fragment {
                 }
             }
         });
+    }
+
+    public void setOnTrackClickListener(TaggerListAdapter.OnTrackTagClickListener onTrackTagClickListener) {
+        mAdapter.setOnTrackTagClickListener(onTrackTagClickListener);
+    }
+
+    public void setOnTrackLongClickListener(TaggerListAdapter.OnTrackTagLongClickListener onTrackTagLongClickListener) {
+        mAdapter.setOnTrackTagLongClickListener(onTrackTagLongClickListener);
+    }
+
+    public void setOnReleaseClickListener(TaggerListAdapter.OnReleaseTagClickListener onReleaseTagClickListener) {
+        mAdapter.setOnReleaseTagClickListener(onReleaseTagClickListener);
+    }
+
+    public void setOnReleaseLongClickListener(TaggerListAdapter.OnReleaseTagLongClickListener onReleaseTagLongClickListener) {
+        mAdapter.setOnReleaseTagLongClickListener(onReleaseTagLongClickListener);
     }
 }

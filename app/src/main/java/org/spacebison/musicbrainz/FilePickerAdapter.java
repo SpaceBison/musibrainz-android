@@ -1,8 +1,10 @@
 package org.spacebison.musicbrainz;
 
+import android.graphics.Rect;
 import android.os.Environment;
 import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
+import android.view.TouchDelegate;
 import android.view.View;
 import android.view.ViewGroup;
 import android.webkit.MimeTypeMap;
@@ -12,6 +14,7 @@ import android.widget.ImageView;
 import android.widget.TextView;
 
 import java.io.File;
+import java.io.FileFilter;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
@@ -113,7 +116,12 @@ public class FilePickerAdapter extends RecyclerView.Adapter<FilePickerAdapter.Vi
 
     private void setDir(File dir) {
         mCurrentDir = dir;
-        mFiles = mCurrentDir.listFiles();
+        mFiles = mCurrentDir.listFiles(new FileFilter() {
+            @Override
+            public boolean accept(File pathname) {
+                return !pathname.isHidden();
+            }
+        });
         Arrays.sort(mFiles, FILE_COMPARATOR);
         notifyDataSetChanged();
         if (mListener != null) {
@@ -134,10 +142,19 @@ public class FilePickerAdapter extends RecyclerView.Adapter<FilePickerAdapter.Vi
         public ImageView icon;
         @Bind(R.id.check)
         public CheckBox checkBox;
+        @Bind(R.id.check_frame)
+        public ViewGroup checkFrame;
 
         public ViewHolder(View itemView) {
             super(itemView);
             ButterKnife.bind(this, itemView);
+            checkFrame.post(new Runnable() {
+                @Override
+                public void run() {
+                    Rect rect = new Rect(0, 0, checkFrame.getWidth(), checkFrame.getHeight());
+                    checkFrame.setTouchDelegate(new TouchDelegate(rect, checkBox));
+                }
+            });
         }
     }
 

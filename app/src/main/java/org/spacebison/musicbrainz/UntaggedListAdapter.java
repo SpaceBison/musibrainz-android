@@ -37,7 +37,7 @@ import butterknife.ButterKnife;
  */
 public class UntaggedListAdapter extends RecyclerView.Adapter<UntaggedListAdapter.ParentViewHolder> {
     private static final String TAG = "UntaggedListAdapter";
-    private final OrderedHashMap<Section, OrderedHashSet<Entry>> mFiles = new OrderedHashMap<>();
+    private final OrderedHashMap<UntaggedRelease, OrderedHashSet<UntaggedTrack>> mFiles = new OrderedHashMap<>();
     private final ExecutorService mExecutor = Executors.newSingleThreadExecutor();
     private final LinkedList<ChildAdapter> mChildAdapters = new LinkedList<>();
     private final RecyclerViewAdapterNotifier mNotifier = new RecyclerViewAdapterNotifier(this);
@@ -55,21 +55,21 @@ public class UntaggedListAdapter extends RecyclerView.Adapter<UntaggedListAdapte
 
     @Override
     public void onBindViewHolder(ParentViewHolder holder, final int position) {
-        final Map.Entry<Section, OrderedHashSet<Entry>> entry;
+        final Map.Entry<UntaggedRelease, OrderedHashSet<UntaggedTrack>> entry;
         synchronized (mFiles) {
             entry = mFiles.getEntryAt(position);
         }
 
-        final Section section = entry.getKey();
+        final UntaggedRelease untaggedRelease = entry.getKey();
 
-        if (section.album != null && !section.album.isEmpty()) {
-            if (section.artist != null && !section.artist.isEmpty()) {
-                holder.text.setText(section.artist + " - " + section.album);
+        if (untaggedRelease.album != null && !untaggedRelease.album.isEmpty()) {
+            if (untaggedRelease.artist != null && !untaggedRelease.artist.isEmpty()) {
+                holder.text.setText(untaggedRelease.artist + " - " + untaggedRelease.album);
             } else {
-                holder.text.setText(section.file.getName());
+                holder.text.setText(untaggedRelease.file.getName());
             }
         } else {
-            holder.text.setText(section.file.getName());
+            holder.text.setText(untaggedRelease.file.getName());
         }
 
         holder.adapter.notifyDataSetChanged();
@@ -78,7 +78,7 @@ public class UntaggedListAdapter extends RecyclerView.Adapter<UntaggedListAdapte
             @Override
             public void onClick(View v) {
                 if (mOnSectionClickListener != null) {
-                    mOnSectionClickListener.onSectionClick(UntaggedListAdapter.this, section);
+                    mOnSectionClickListener.onSectionClick(UntaggedListAdapter.this, untaggedRelease);
                 }
             }
         });
@@ -86,7 +86,7 @@ public class UntaggedListAdapter extends RecyclerView.Adapter<UntaggedListAdapte
             @Override
             public boolean onLongClick(View v) {
                 if (mOnSectionLongClickListener != null) {
-                    mOnSectionLongClickListener.onSectionLongClick(UntaggedListAdapter.this, section);
+                    mOnSectionLongClickListener.onSectionLongClick(UntaggedListAdapter.this, untaggedRelease);
                     return true;
                 } else {
                     return false;
@@ -100,7 +100,7 @@ public class UntaggedListAdapter extends RecyclerView.Adapter<UntaggedListAdapte
         return mFiles.size();
     }
 
-    public OrderedHashMap<Section, OrderedHashSet<Entry>> getFiles() {
+    public OrderedHashMap<UntaggedRelease, OrderedHashSet<UntaggedTrack>> getFiles() {
         return new OrderedHashMap<>(mFiles);
     }
 
@@ -147,51 +147,51 @@ public class UntaggedListAdapter extends RecyclerView.Adapter<UntaggedListAdapte
                         continue;
                     }
 
-                    Entry entry = new Entry();
-                    entry.file = f;
+                    UntaggedTrack untaggedTrack = new UntaggedTrack();
+                    untaggedTrack.file = f;
                     Tag tag = audioFile.getTag();
 
                     if (tag != null) {
                         try {
-                            entry.name = tag.getFirst(FieldKey.TITLE);
+                            untaggedTrack.name = tag.getFirst(FieldKey.TITLE);
                         } catch (KeyNotFoundException ignored) {
                         }
                     }
 
-                    if (entry.name == null || entry.name.isEmpty()) {
-                        entry.name = entry.file.getName();
+                    if (untaggedTrack.name == null || untaggedTrack.name.isEmpty()) {
+                        untaggedTrack.name = untaggedTrack.file.getName();
                     }
 
-                    Section section = new Section();
-                    section.file = dir;
+                    UntaggedRelease untaggedRelease = new UntaggedRelease();
+                    untaggedRelease.file = dir;
 
                     try {
-                        section.album = audioFile.getTag().getFirst(FieldKey.ALBUM);
+                        untaggedRelease.album = audioFile.getTag().getFirst(FieldKey.ALBUM);
                     } catch (KeyNotFoundException ignored) {
                     }
 
                     try {
-                        section.artist = audioFile.getTag().getFirst(FieldKey.ARTIST);
+                        untaggedRelease.artist = audioFile.getTag().getFirst(FieldKey.ARTIST);
                     } catch (KeyNotFoundException ignored) {
                     }
 
 
                     synchronized (mFiles) {
-                        if (mFiles.containsKey(section)) {
-                            final OrderedHashSet<Entry> dirSet = mFiles.get(section);
+                        if (mFiles.containsKey(untaggedRelease)) {
+                            final OrderedHashSet<UntaggedTrack> dirSet = mFiles.get(untaggedRelease);
                             synchronized (dirSet) {
-                                dirSet.add(entry);
+                                dirSet.add(untaggedTrack);
                             }
 
-                            final int position = mFiles.lastIndexOf(section);
+                            final int position = mFiles.lastIndexOf(untaggedRelease);
 
                             Log.d(TAG, "Refreshed position: " + position);
 
                             mNotifier.notifyItemChanged(position);
                         } else {
-                            OrderedHashSet<Entry> dirSet = new OrderedHashSet<>();
-                            dirSet.add(entry);
-                            mFiles.put(section, dirSet);
+                            OrderedHashSet<UntaggedTrack> dirSet = new OrderedHashSet<>();
+                            dirSet.add(untaggedTrack);
+                            mFiles.put(untaggedRelease, dirSet);
 
                             mNotifier.notifyItemInserted(mFiles.size() - 1);
                         }
@@ -202,19 +202,19 @@ public class UntaggedListAdapter extends RecyclerView.Adapter<UntaggedListAdapte
     }
 
     public interface OnItemClickListener {
-        void onItemClick(UntaggedListAdapter adapter, Entry entry);
+        void onItemClick(UntaggedListAdapter adapter, UntaggedTrack untaggedTrack);
     }
 
     public interface OnItemLongClickListener {
-        void onItemLongClick(UntaggedListAdapter adapter, Entry entry);
+        void onItemLongClick(UntaggedListAdapter adapter, UntaggedTrack untaggedTrack);
     }
 
     public interface OnSectionClickListener {
-        void onSectionClick(UntaggedListAdapter adapter, Section section);
+        void onSectionClick(UntaggedListAdapter adapter, UntaggedRelease untaggedRelease);
     }
 
     public interface OnSectionLongClickListener {
-        void onSectionLongClick(UntaggedListAdapter adapter, Section section);
+        void onSectionLongClick(UntaggedListAdapter adapter, UntaggedRelease untaggedRelease);
     }
 
     public class ParentViewHolder extends RecyclerView.ViewHolder {
@@ -260,9 +260,9 @@ public class UntaggedListAdapter extends RecyclerView.Adapter<UntaggedListAdapte
     }
 
     public class ChildAdapter extends RecyclerView.Adapter<ChildAdapter.ChildViewHolder> {
-        OrderedHashSet<Entry> mChildFiles;
+        OrderedHashSet<UntaggedTrack> mChildFiles;
 
-        public void setFiles(OrderedHashSet<Entry> files) {
+        public void setFiles(OrderedHashSet<UntaggedTrack> files) {
             mChildFiles = files;
         }
 
@@ -274,8 +274,8 @@ public class UntaggedListAdapter extends RecyclerView.Adapter<UntaggedListAdapte
 
         @Override
         public void onBindViewHolder(ChildViewHolder holder, int position) {
-            Entry entry = mChildFiles.get(position);
-            holder.text.setText(entry.name);
+            UntaggedTrack untaggedTrack = mChildFiles.get(position);
+            holder.text.setText(untaggedTrack.name);
         }
 
         @Override
@@ -294,7 +294,7 @@ public class UntaggedListAdapter extends RecyclerView.Adapter<UntaggedListAdapte
         }
     }
 
-    public static class Section {
+    public static class UntaggedRelease {
         File file;
         String album;
         String artist;
@@ -304,11 +304,11 @@ public class UntaggedListAdapter extends RecyclerView.Adapter<UntaggedListAdapte
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
 
-            Section section = (Section) o;
+            UntaggedRelease untaggedRelease = (UntaggedRelease) o;
 
-            if (file != null ? !file.equals(section.file) : section.file != null) return false;
-            if (album != null ? !album.equals(section.album) : section.album != null) return false;
-            return !(artist != null ? !artist.equals(section.artist) : section.artist != null);
+            if (file != null ? !file.equals(untaggedRelease.file) : untaggedRelease.file != null) return false;
+            if (album != null ? !album.equals(untaggedRelease.album) : untaggedRelease.album != null) return false;
+            return !(artist != null ? !artist.equals(untaggedRelease.artist) : untaggedRelease.artist != null);
 
         }
 
@@ -321,7 +321,7 @@ public class UntaggedListAdapter extends RecyclerView.Adapter<UntaggedListAdapte
         }
     }
 
-    public static class Entry {
+    public static class UntaggedTrack {
         File file;
         String name;
 
@@ -330,9 +330,9 @@ public class UntaggedListAdapter extends RecyclerView.Adapter<UntaggedListAdapte
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
 
-            Entry entry = (Entry) o;
+            UntaggedTrack untaggedTrack = (UntaggedTrack) o;
 
-            return !(file != null ? !file.equals(entry.file) : entry.file != null);
+            return !(file != null ? !file.equals(untaggedTrack.file) : untaggedTrack.file != null);
 
         }
 

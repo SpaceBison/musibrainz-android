@@ -1,5 +1,6 @@
 package org.spacebison.musicbrainz;
 
+import android.content.ComponentName;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
@@ -102,5 +103,43 @@ public class Utils {
         intent.putExtras(extras);
 
         return intent;
+    }
+
+    @NonNull
+    public static String getUrlForIntent(Intent intent) {
+        StringBuilder builder = new StringBuilder("intent:");
+
+        Uri data = intent.getData();
+        if (data != null) {
+            builder.append(data.getHost());
+        }
+
+        builder.append("#Intent;");
+
+        String package_ = intent.getPackage();
+        if (package_ != null) {
+            builder.append("package=").append(package_).append(';');
+        }
+
+        Set<String> categories = intent.getCategories();
+        if (categories != null) {
+            for (String category : categories) {
+                builder.append("category=").append(category).append(';');
+            }
+        }
+
+        ComponentName componentName = intent.getComponent();
+        if (componentName != null) {
+            builder.append("component=").append(componentName.getClassName()).append(';');
+        }
+
+        String scheme = intent.getScheme();
+        if (scheme != null) {
+            builder.append("scheme=").append(scheme).append(';');
+        }
+
+        builder.append("end;");
+
+        return builder.toString();
     }
 }
