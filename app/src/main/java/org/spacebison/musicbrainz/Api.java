@@ -25,6 +25,7 @@ public class Api {
         InputStream is = httpURLConnection.getInputStream();
         Scanner s = new java.util.Scanner(is).useDelimiter("\\A");
         String stringRelease = s.hasNext() ? s.next() : "";
+        Log.d(TAG, "Json: " + stringRelease);
         return new Gson().fromJson(stringRelease, Release.class);
     }
 }

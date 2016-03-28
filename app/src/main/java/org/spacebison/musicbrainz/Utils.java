@@ -1,11 +1,15 @@
 package org.spacebison.musicbrainz;
 
 import android.content.ComponentName;
+import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.support.annotation.NonNull;
 import android.support.v4.app.BundleCompat;
+import android.widget.Toast;
 
 import java.io.File;
 import java.util.Arrays;
@@ -141,5 +145,23 @@ public class Utils {
         builder.append("end;");
 
         return builder.toString();
+    }
+
+    public static void showToast(final Context context, final CharSequence text, final int duration) {
+        new Handler(Looper.getMainLooper()).post(new Runnable() {
+            @Override
+            public void run() {
+                Toast.makeText(context, text, duration).show();
+            }
+        });
+    }
+
+    public static void showToast(final Context context, final int resId, final int duration) {
+        new Handler(Looper.getMainLooper()).post(new Runnable() {
+            @Override
+            public void run() {
+                Toast.makeText(context, resId, duration).show();
+            }
+        });
     }
 }

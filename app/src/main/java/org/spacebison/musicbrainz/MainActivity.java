@@ -91,7 +91,7 @@ public class MainActivity extends AppCompatActivity implements ViewPager.OnPageC
         super.onResumeFragments();
         mUntaggedListFragment.setOnSectionLongClickListener(new UntaggedListAdapter.OnSectionLongClickListener() {
             @Override
-            public void onSectionLongClick(UntaggedListAdapter adapter, final UntaggedListAdapter.UntaggedRelease untaggedRelease) {
+            public void onSectionLongClick(final UntaggedListAdapter adapter, final UntaggedListAdapter.UntaggedRelease untaggedRelease) {
                 CharSequence[] items = new CharSequence[]{"Search in browser", "Tag"};
                 AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
                 builder.setItems(items, new DialogInterface.OnClickListener() {
@@ -111,20 +111,24 @@ public class MainActivity extends AppCompatActivity implements ViewPager.OnPageC
                                 break;
 
                             case 1:
+                                adapter.setMarked(untaggedRelease, true);
                                 mTaggerFragment.setOnReleaseClickListener(new TaggerListAdapter.OnReleaseTagClickListener() {
                                     @Override
-                                    public void onReleaseTagClick(final TaggerListAdapter adapter, final TaggerListAdapter.ReleaseTag release) {
+                                    public void onReleaseTagClick(final TaggerListAdapter taggerListAdapter, final TaggerListAdapter.ReleaseTag release) {
                                         new AlertDialog.Builder(MainActivity.this)
                                                 .setMessage("Tag?")
                                                 .setNegativeButton(android.R.string.cancel, null)
                                                 .setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
                                                     @Override
                                                     public void onClick(DialogInterface dialog, int which) {
-                                                        adapter.setUntaggedRelease(release, untaggedRelease);
+                                                        taggerListAdapter.setUntaggedRelease(release, untaggedRelease, adapter.getUntaggedTracks(untaggedRelease));
+                                                        adapter.removeUntaggedRelease(untaggedRelease);
+                                                        adapter.notifyDataSetChanged();
                                                     }
-                                                });
+                                                }).show();
                                     }
                                 });
+                                mViewPager.setCurrentItem(1, true);
                         }
                     }
                 });
@@ -149,6 +153,7 @@ public class MainActivity extends AppCompatActivity implements ViewPager.OnPageC
         Log.d(TAG, "Page selected: " + position);
         switch (position) {
             case 0:
+                mFab.setImageResource(R.drawable.ic_add_24dp);
                 mFab.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
@@ -156,6 +161,24 @@ public class MainActivity extends AppCompatActivity implements ViewPager.OnPageC
                     }
                 });
                 break;
+
+            case 1:
+                mFab.setImageResource(R.drawable.ic_save_24dp);
+                mFab.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        new AlertDialog.Builder(MainActivity.this)
+                                .setTitle("Save tags")
+                                .setMessage("Do you want to save the tags? This will overwrite current tag data.")
+                                .setNegativeButton(android.R.string.cancel, null)
+                                .setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
+                                    @Override
+                                    public void onClick(DialogInterface dialog, int which) {
+                                        mTaggerFragment.saveTags();
+                                    }
+                                });
+                    }
+                });
         }
     }
 
@@ -195,13 +218,7 @@ public class MainActivity extends AppCompatActivity implements ViewPager.OnPageC
             Log.d(TAG, "Serve session; params: " + params);
 
             mTaggerFragment.onBrowserLookupResult(params.get("id"));
-
-            String intentUri = Utils.getUrlForIntent(new Intent(MainActivity.this, MainActivity.class));
-
-            Response res =
-                    newFixedLengthResponse(Response.Status.REDIRECT, NanoHTTPD.MIME_HTML, "<html><body>Redirected: <a href=\"" + intentUri + "\">" + intentUri + "</a></body></html>");
-            res.addHeader("Location", intentUri);
-            return res;
+            return super.serve(session);
         }
     }
 }

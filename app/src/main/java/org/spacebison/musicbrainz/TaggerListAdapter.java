@@ -3,6 +3,7 @@ package org.spacebison.musicbrainz;
 import android.support.v4.view.ViewCompat;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -15,6 +16,7 @@ import org.spacebison.musicbrainz.api.Release;
 import org.spacebison.musicbrainz.api.Track;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
@@ -22,6 +24,7 @@ import java.util.concurrent.Executors;
 
 import butterknife.Bind;
 import butterknife.ButterKnife;
+import info.debatty.java.stringsimilarity.Levenshtein;
 
 /**
  * Created by cmb on 09.03.16.
@@ -30,7 +33,6 @@ public class TaggerListAdapter extends RecyclerView.Adapter<TaggerListAdapter.Pa
     private static final String TAG = "UntaggedListAdapter";
     private final OrderedHashSet<ReleaseTag> mReleaseTags = new OrderedHashSet<>();
     private final ExecutorService mExecutor = Executors.newSingleThreadExecutor();
-    private final LinkedList<ChildAdapter> mChildAdapters = new LinkedList<>();
     private final RecyclerViewAdapterNotifier mNotifier = new RecyclerViewAdapterNotifier(this);
     private OnTrackTagClickListener mOnTrackTagClickListener;
     private OnTrackTagLongClickListener mOnTrackTagLongClickListener;
@@ -51,14 +53,14 @@ public class TaggerListAdapter extends RecyclerView.Adapter<TaggerListAdapter.Pa
             releaseTag = mReleaseTags.get(position);
         }
 
-        holder.text.setText(releaseTag.release.getArtist_credit().get(0).getName() + " - " + releaseTag.release.getTitle());
+        holder.recycler.setAdapter(releaseTag.childAdapter);
 
-        holder.adapter.setRelease(releaseTag);
-        holder.adapter.notifyDataSetChanged();
+        holder.text.setText(releaseTag.release.getArtist_credit().get(0).getName() + " - " + releaseTag.release.getTitle());
 
         holder.root.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                Log.d(TAG, "klik1");
                 if (mOnReleaseTagClickListener != null) {
                     mOnReleaseTagClickListener.onReleaseTagClick(TaggerListAdapter.this, releaseTag);
                 }
@@ -83,7 +85,7 @@ public class TaggerListAdapter extends RecyclerView.Adapter<TaggerListAdapter.Pa
     }
 
     public List<ReleaseTag> getReleaseTags() {
-        return new ArrayList<>(mReleaseTags);
+        return mReleaseTags.toList();
     }
 
     public void setOnTrackTagClickListener(OnTrackTagClickListener onTrackTagClickListener) {
@@ -103,6 +105,10 @@ public class TaggerListAdapter extends RecyclerView.Adapter<TaggerListAdapter.Pa
     }
 
     public void addRelease(Release release) {
+        if (release == null) {
+            return;
+        }
+
         ReleaseTag releaseTag = new ReleaseTag(release);
 
         if (mReleaseTags.contains(releaseTag)) {
@@ -116,13 +122,39 @@ public class TaggerListAdapter extends RecyclerView.Adapter<TaggerListAdapter.Pa
     public void setUntaggedRelease(ReleaseTag releaseTag, UntaggedRelease untaggedRelease, List<UntaggedTrack> untaggedTracks) {
         releaseTag.untagged = untaggedRelease;
 
-        LinkedList<Track> tracks = new LinkedList<>();
-        for (Medium m : releaseTag.release.getMedia()) {
-            tracks.addAll(m.getTracks());
+        final ChildAdapter childAdapter = releaseTag.childAdapter;
+        ArrayList<TrackTag> trackTags = new ArrayList<>(childAdapter.mTrackTags);
+
+        Levenshtein levenshtein = new Levenshtein();
+
+        for (Iterator<TrackTag> it = trackTags.iterator(); it.hasNext();) {
+            TrackTag tt = it.next();
+
+            if (tt.untaggedTrack != null) {
+                it.remove();
+            }
         }
 
-        // TODO: 28.03.16 copmpute scores, assign tracks 
+        for (UntaggedTrack ut : untaggedTracks) {
+            double bestScore = Double.POSITIVE_INFINITY;
+            TrackTag bestTrack = null;
 
+            for (TrackTag tt : trackTags) {
+                double score = levenshtein.distance(ut.name, tt.track.getTitle());
+
+                if (score < bestScore) {
+                    bestScore = score;
+                    bestTrack = tt;
+                }
+            }
+
+            if (bestTrack != null) {
+                bestTrack.untaggedTrack = ut;
+                trackTags.remove(bestTrack);
+            }
+        }
+
+        childAdapter.notifyDataSetChanged();
         notifyItemChanged(mReleaseTags.indexOf(releaseTag));
     }
 
@@ -156,12 +188,9 @@ public class TaggerListAdapter extends RecyclerView.Adapter<TaggerListAdapter.Pa
         @Bind(R.id.icon_collapse)
         View collapseButton;
 
-        ChildAdapter adapter = new ChildAdapter();
-
         public ParentViewHolder(View itemView) {
             super(itemView);
             ButterKnife.bind(this, itemView);
-            recycler.setAdapter(adapter);
             recycler.setLayoutManager(new LinearLayoutManager(itemView.getContext()));
             collapseButton.setOnClickListener(new View.OnClickListener() {
                 @Override
@@ -189,14 +218,18 @@ public class TaggerListAdapter extends RecyclerView.Adapter<TaggerListAdapter.Pa
     }
 
     public class ChildAdapter extends RecyclerView.Adapter<ChildAdapter.ChildViewHolder> {
-        ReleaseTag mReleaseTag;
-        List<TrackTag> mTrackTags;
+        private ReleaseTag mReleaseTag;
+        private List<TrackTag> mTrackTags;
 
-        public void setRelease(ReleaseTag releaseTag) {
+        public ChildAdapter(ReleaseTag releaseTag) {
             mReleaseTag = releaseTag;
+            updateTracks();
+        }
+
+        public void updateTracks() {
             mTrackTags = new LinkedList<>();
 
-            for (Medium m : releaseTag.release.getMedia()) {
+            for (Medium m : mReleaseTag.release.getMedia()) {
                 List<Track> tracks = m.getTracks();
                 for (Track t : tracks) {
                     mTrackTags.add(new TrackTag(t));
@@ -206,7 +239,7 @@ public class TaggerListAdapter extends RecyclerView.Adapter<TaggerListAdapter.Pa
 
         @Override
         public ChildViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
-            View v = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_file_untagged, parent, false);
+            View v = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_file_tagger, parent, false);
             return new ChildViewHolder(v);
         }
 
@@ -264,12 +297,15 @@ public class TaggerListAdapter extends RecyclerView.Adapter<TaggerListAdapter.Pa
         }
     }
 
-    public static class ReleaseTag {
+    public class ReleaseTag {
         public UntaggedRelease untagged;
         public Release release;
+        public ChildAdapter childAdapter;
+        public RecyclerViewAdapterNotifier adapterNotifier = new RecyclerViewAdapterNotifier(childAdapter);
 
         public ReleaseTag(Release release) {
             this.release = release;
+            childAdapter = new ChildAdapter(this);
         }
 
         @Override

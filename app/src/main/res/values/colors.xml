@@ -3,6 +3,7 @@
     <color name="colorPrimary">#b66bc2</color>
     <color name="colorPrimaryDark">#771b85</color>
     <color name="colorAccent">#eb743b</color>
+    <color name="transparent">#0000</color>
 
     <!-- Material colors -->
     <color name="textColor">#de000000</color>

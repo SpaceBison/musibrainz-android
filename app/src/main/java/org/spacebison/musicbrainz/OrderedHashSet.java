@@ -131,4 +131,8 @@ public class OrderedHashSet<E> extends HashSet<E> {
         super.remove(removed);
         return removed;
     }
+
+    public List<E> toList() {
+        return new ArrayList<>(mList);
+    }
 }

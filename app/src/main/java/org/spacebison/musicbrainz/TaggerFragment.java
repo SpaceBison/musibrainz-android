@@ -1,5 +1,6 @@
 package org.spacebison.musicbrainz;
 
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
@@ -8,10 +9,12 @@ import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Toast;
 
 import org.spacebison.musicbrainz.api.Release;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -49,11 +52,25 @@ public class TaggerFragment extends Fragment {
                 try {
                     Release release = Api.getRelease(id);
                     mAdapter.addRelease(release);
+                    Utils.showToast(Musicbrainz.getAppContext(), "Got tags for " + release.getTitle(), Toast.LENGTH_SHORT);
                 } catch (IOException e) {
-                    e.printStackTrace();
+                    Utils.showToast(Musicbrainz.getAppContext(), "Could not get tags. Please try again.", Toast.LENGTH_SHORT);
                 }
             }
         });
+    }
+
+    public void saveTags() {
+        new AsyncTask<Void, Void, Void>() {
+            @Override
+            protected Void doInBackground(Void... params) {
+                List<TaggerListAdapter.ReleaseTag> releaseTags = mAdapter.getReleaseTags();
+                for (TaggerListAdapter.ReleaseTag rt : releaseTags) {
+
+                }
+                return null;
+            }
+        }.execute();
     }
 
     public void setOnTrackClickListener(TaggerListAdapter.OnTrackTagClickListener onTrackTagClickListener) {

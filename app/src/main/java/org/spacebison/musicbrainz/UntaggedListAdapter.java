@@ -1,5 +1,6 @@
 package org.spacebison.musicbrainz;
 
+import android.support.v4.content.ContextCompat;
 import android.support.v4.view.ViewCompat;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
@@ -24,6 +25,7 @@ import java.io.IOException;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
@@ -37,7 +39,7 @@ import butterknife.ButterKnife;
  */
 public class UntaggedListAdapter extends RecyclerView.Adapter<UntaggedListAdapter.ParentViewHolder> {
     private static final String TAG = "UntaggedListAdapter";
-    private final OrderedHashMap<UntaggedRelease, OrderedHashSet<UntaggedTrack>> mFiles = new OrderedHashMap<>();
+    private final OrderedHashMap<UntaggedRelease, OrderedHashSet<UntaggedTrack>> mUntagged = new OrderedHashMap<>();
     private final ExecutorService mExecutor = Executors.newSingleThreadExecutor();
     private final LinkedList<ChildAdapter> mChildAdapters = new LinkedList<>();
     private final RecyclerViewAdapterNotifier mNotifier = new RecyclerViewAdapterNotifier(this);
@@ -56,11 +58,13 @@ public class UntaggedListAdapter extends RecyclerView.Adapter<UntaggedListAdapte
     @Override
     public void onBindViewHolder(ParentViewHolder holder, final int position) {
         final Map.Entry<UntaggedRelease, OrderedHashSet<UntaggedTrack>> entry;
-        synchronized (mFiles) {
-            entry = mFiles.getEntryAt(position);
+        synchronized (mUntagged) {
+            entry = mUntagged.getEntryAt(position);
         }
 
         final UntaggedRelease untaggedRelease = entry.getKey();
+
+        holder.recycler.setAdapter(untaggedRelease.childAdapter);
 
         if (untaggedRelease.album != null && !untaggedRelease.album.isEmpty()) {
             if (untaggedRelease.artist != null && !untaggedRelease.artist.isEmpty()) {
@@ -72,8 +76,8 @@ public class UntaggedListAdapter extends RecyclerView.Adapter<UntaggedListAdapte
             holder.text.setText(untaggedRelease.file.getName());
         }
 
-        holder.adapter.notifyDataSetChanged();
-        holder.adapter.mChildFiles = entry.getValue();
+        int bgColorResId = untaggedRelease.marked ? R.color.colorAccent : R.color.transparent;
+        holder.root.setBackgroundColor(ContextCompat.getColor(Musicbrainz.getAppContext(), bgColorResId));
         holder.root.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -97,11 +101,11 @@ public class UntaggedListAdapter extends RecyclerView.Adapter<UntaggedListAdapte
 
     @Override
     public int getItemCount() {
-        return mFiles.size();
+        return mUntagged.size();
     }
 
-    public OrderedHashMap<UntaggedRelease, OrderedHashSet<UntaggedTrack>> getFiles() {
-        return new OrderedHashMap<>(mFiles);
+    public OrderedHashMap<UntaggedRelease, OrderedHashSet<UntaggedTrack>> getUntagged() {
+        return new OrderedHashMap<>(mUntagged);
     }
 
     public void setOnItemClickListener(OnItemClickListener onItemClickListener) {
@@ -176,29 +180,47 @@ public class UntaggedListAdapter extends RecyclerView.Adapter<UntaggedListAdapte
                     }
 
 
-                    synchronized (mFiles) {
-                        if (mFiles.containsKey(untaggedRelease)) {
-                            final OrderedHashSet<UntaggedTrack> dirSet = mFiles.get(untaggedRelease);
+                    synchronized (mUntagged) {
+                        if (mUntagged.containsKey(untaggedRelease)) {
+                            final OrderedHashSet<UntaggedTrack> dirSet = mUntagged.get(untaggedRelease);
                             synchronized (dirSet) {
                                 dirSet.add(untaggedTrack);
                             }
 
-                            final int position = mFiles.lastIndexOf(untaggedRelease);
-
-                            Log.d(TAG, "Refreshed position: " + position);
-
+                            final int position = mUntagged.lastIndexOf(untaggedRelease);
                             mNotifier.notifyItemChanged(position);
+                            //untaggedRelease.adapterNotifier.notifyItemChanged(dirSet.indexOf(untaggedTrack));
+                            untaggedRelease.adapterNotifier.notifyDataSetChanged();
                         } else {
                             OrderedHashSet<UntaggedTrack> dirSet = new OrderedHashSet<>();
                             dirSet.add(untaggedTrack);
-                            mFiles.put(untaggedRelease, dirSet);
+                            mUntagged.put(untaggedRelease, dirSet);
 
-                            mNotifier.notifyItemInserted(mFiles.size() - 1);
+                            mNotifier.notifyItemInserted(mUntagged.size() - 1);
+                            untaggedRelease.adapterNotifier.notifyDataSetChanged();
                         }
                     }
                 }
             }
         });
+    }
+
+    public List<UntaggedTrack> getUntaggedTracks(UntaggedRelease untaggedRelease) {
+        return mUntagged.get(untaggedRelease).toList();
+    }
+
+    public void setMarked(UntaggedRelease release, boolean marked) {
+        release.marked = marked;
+        notifyItemChanged(mUntagged.indexOf(release));
+    }
+
+    public void setMarked(UntaggedRelease release, UntaggedTrack track, boolean marked) {
+        track.marked = marked;
+        release.adapterNotifier.notifyItemChanged(mUntagged.get(release).indexOf(track));
+    }
+
+    public void removeUntaggedRelease(UntaggedRelease untaggedRelease) {
+        mUntagged.remove(untaggedRelease);
     }
 
     public interface OnItemClickListener {
@@ -227,12 +249,11 @@ public class UntaggedListAdapter extends RecyclerView.Adapter<UntaggedListAdapte
         @Bind(R.id.icon_collapse)
         View collapseButton;
 
-        ChildAdapter adapter = new ChildAdapter();
+       // ChildAdapter adapter = new ChildAdapter();
 
         public ParentViewHolder(View itemView) {
             super(itemView);
             ButterKnife.bind(this, itemView);
-            recycler.setAdapter(adapter);
             recycler.setLayoutManager(new LinearLayoutManager(itemView.getContext()));
             collapseButton.setOnClickListener(new View.OnClickListener() {
                 @Override
@@ -260,10 +281,10 @@ public class UntaggedListAdapter extends RecyclerView.Adapter<UntaggedListAdapte
     }
 
     public class ChildAdapter extends RecyclerView.Adapter<ChildAdapter.ChildViewHolder> {
-        OrderedHashSet<UntaggedTrack> mChildFiles;
+        private UntaggedRelease mUntaggedRelease;
 
-        public void setFiles(OrderedHashSet<UntaggedTrack> files) {
-            mChildFiles = files;
+        public ChildAdapter(UntaggedRelease untaggedRelease) {
+            mUntaggedRelease = untaggedRelease;
         }
 
         @Override
@@ -274,16 +295,22 @@ public class UntaggedListAdapter extends RecyclerView.Adapter<UntaggedListAdapte
 
         @Override
         public void onBindViewHolder(ChildViewHolder holder, int position) {
-            UntaggedTrack untaggedTrack = mChildFiles.get(position);
+            OrderedHashSet<UntaggedTrack> tracks = mUntagged.get(mUntaggedRelease);
+            UntaggedTrack untaggedTrack = tracks.get(position);
             holder.text.setText(untaggedTrack.name);
+            int bgColorResId = untaggedTrack.marked ? R.color.colorAccent : R.color.transparent;
+            holder.root.setBackgroundColor(ContextCompat.getColor(Musicbrainz.getAppContext(), bgColorResId));
         }
 
         @Override
         public int getItemCount() {
-            return mChildFiles.size();
+            OrderedHashSet tracks = mUntagged.get(mUntaggedRelease);
+            return tracks == null ? 0 : tracks.size();
         }
 
         public class ChildViewHolder extends RecyclerView.ViewHolder {
+            @Bind(R.id.root)
+            ViewGroup root;
             @Bind(R.id.text)
             TextView text;
 
@@ -294,36 +321,49 @@ public class UntaggedListAdapter extends RecyclerView.Adapter<UntaggedListAdapte
         }
     }
 
-    public static class UntaggedRelease {
+    public class UntaggedRelease {
         File file;
         String album;
         String artist;
+        boolean marked = false;
+        ChildAdapter childAdapter = new ChildAdapter(this);
+        RecyclerViewAdapterNotifier adapterNotifier = new RecyclerViewAdapterNotifier(childAdapter);
 
         @Override
         public boolean equals(Object o) {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
 
-            UntaggedRelease untaggedRelease = (UntaggedRelease) o;
+            UntaggedRelease that = (UntaggedRelease) o;
 
-            if (file != null ? !file.equals(untaggedRelease.file) : untaggedRelease.file != null) return false;
-            if (album != null ? !album.equals(untaggedRelease.album) : untaggedRelease.album != null) return false;
-            return !(artist != null ? !artist.equals(untaggedRelease.artist) : untaggedRelease.artist != null);
+            return !(file != null ? !file.equals(that.file) : that.file != null);
 
         }
 
         @Override
         public int hashCode() {
-            int result = file != null ? file.hashCode() : 0;
-            result = 31 * result + (album != null ? album.hashCode() : 0);
-            result = 31 * result + (artist != null ? artist.hashCode() : 0);
-            return result;
+            return file != null ? file.hashCode() : 0;
         }
     }
 
     public static class UntaggedTrack {
         File file;
         String name;
+        boolean marked;
+
+        public String updateName() {
+            try {
+                AudioFile audioFile = AudioFileIO.read(file);
+                Tag tag = audioFile.getTag();
+
+                if(tag != null) {
+                    name = tag.getFirst(FieldKey.TITLE);
+                }
+            } catch (TagException | KeyNotFoundException | ReadOnlyFileException | InvalidAudioFrameException | IOException | CannotReadException e) {
+                e.printStackTrace();
+            }
+            return name;
+        }
 
         @Override
         public boolean equals(Object o) {
