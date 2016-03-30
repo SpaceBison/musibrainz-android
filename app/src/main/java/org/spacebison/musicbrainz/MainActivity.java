@@ -121,7 +121,7 @@ public class MainActivity extends AppCompatActivity implements ViewPager.OnPageC
                                                 .setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
                                                     @Override
                                                     public void onClick(DialogInterface dialog, int which) {
-                                                        taggerListAdapter.setUntaggedRelease(release, untaggedRelease, adapter.getUntaggedTracks(untaggedRelease));
+                                                        taggerListAdapter.setUntaggedRelease(release, untaggedRelease);
                                                         adapter.removeUntaggedRelease(untaggedRelease);
                                                         adapter.notifyDataSetChanged();
                                                     }

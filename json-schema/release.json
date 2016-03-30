@@ -17,11 +17,11 @@
     },
     "asin": {
       "id": "asin",
-      "type": "null"
+      "type": "string"
     },
     "barcode": {
       "id": "barcode",
-      "type": "null"
+      "type": "string"
     },
     "country": {
       "id": "country",
@@ -130,7 +130,7 @@
                     },
                     "annotation": {
                       "id": "annotation",
-                      "type": "null"
+                      "type": "string"
                     },
                     "artist-credit": {
                       "$ref": "#definitions/artist-credit"
@@ -177,7 +177,7 @@
     },
     "packaging": {
       "id": "packaging",
-      "type": "null"
+      "type": "string"
     },
     "quality": {
       "id": "quality",
@@ -189,7 +189,7 @@
       "properties": {
         "value": {
           "id": "value",
-          "type": "null"
+          "type": "string"
         },
         "votes-count": {
           "id": "votes-count",
@@ -306,14 +306,14 @@
                     },
                     "type": {
                       "id": "type",
-                      "type": "null"
+                      "type": "string"
                     }
                   }
                 }
               },
               "annotation": {
                 "id": "annotation",
-                "type": "null"
+                "type": "string"
               },
               "disambiguation": {
                 "id": "disambiguation",

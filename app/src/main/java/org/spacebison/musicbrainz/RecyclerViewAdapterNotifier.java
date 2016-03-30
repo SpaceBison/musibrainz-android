@@ -90,6 +90,10 @@ public class RecyclerViewAdapterNotifier {
         });
     }
 
+    public void notifyItemInserted() {
+        notifyItemInserted(mAdapter.getItemCount() - 1);
+    }
+
     /**
      * @see RecyclerView.Adapter#notifyItemMoved(int, int)
      */
@@ -124,6 +128,10 @@ public class RecyclerViewAdapterNotifier {
                 mAdapter.notifyItemRemoved(position);
             }
         });
+    }
+
+    public void notfiyItemRemoved() {
+        notifyItemRemoved(mAdapter.getItemCount());
     }
 
     /**

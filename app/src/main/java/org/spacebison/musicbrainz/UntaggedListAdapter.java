@@ -24,7 +24,6 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -41,8 +40,7 @@ public class UntaggedListAdapter extends RecyclerView.Adapter<UntaggedListAdapte
     private static final String TAG = "UntaggedListAdapter";
     private final OrderedHashMap<UntaggedRelease, OrderedHashSet<UntaggedTrack>> mUntagged = new OrderedHashMap<>();
     private final ExecutorService mExecutor = Executors.newSingleThreadExecutor();
-    private final LinkedList<ChildAdapter> mChildAdapters = new LinkedList<>();
-    private final RecyclerViewAdapterNotifier mNotifier = new RecyclerViewAdapterNotifier(this);
+    public final RecyclerViewAdapterNotifier notifier = new RecyclerViewAdapterNotifier(this);
     private OnItemClickListener mOnItemClickListener;
     private OnItemLongClickListener mOnItemLongClickListener;
     private OnSectionClickListener mOnSectionClickListener;
@@ -179,25 +177,17 @@ public class UntaggedListAdapter extends RecyclerView.Adapter<UntaggedListAdapte
                     } catch (KeyNotFoundException ignored) {
                     }
 
-
                     synchronized (mUntagged) {
                         if (mUntagged.containsKey(untaggedRelease)) {
                             final OrderedHashSet<UntaggedTrack> dirSet = mUntagged.get(untaggedRelease);
-                            synchronized (dirSet) {
-                                dirSet.add(untaggedTrack);
-                            }
-
+                            dirSet.add(untaggedTrack);
                             final int position = mUntagged.lastIndexOf(untaggedRelease);
-                            mNotifier.notifyItemChanged(position);
-                            //untaggedRelease.adapterNotifier.notifyItemChanged(dirSet.indexOf(untaggedTrack));
-                            untaggedRelease.adapterNotifier.notifyDataSetChanged();
+                            notifier.notifyItemChanged(position);
                         } else {
-                            OrderedHashSet<UntaggedTrack> dirSet = new OrderedHashSet<>();
+                            final OrderedHashSet<UntaggedTrack> dirSet = new OrderedHashSet<>();
                             dirSet.add(untaggedTrack);
                             mUntagged.put(untaggedRelease, dirSet);
-
-                            mNotifier.notifyItemInserted(mUntagged.size() - 1);
-                            untaggedRelease.adapterNotifier.notifyDataSetChanged();
+                            notifier.notifyItemInserted(mUntagged.size() - 1);
                         }
                     }
                 }
@@ -211,16 +201,18 @@ public class UntaggedListAdapter extends RecyclerView.Adapter<UntaggedListAdapte
 
     public void setMarked(UntaggedRelease release, boolean marked) {
         release.marked = marked;
-        notifyItemChanged(mUntagged.indexOf(release));
+        notifier.notifyItemChanged(mUntagged.indexOf(release));
     }
 
     public void setMarked(UntaggedRelease release, UntaggedTrack track, boolean marked) {
         track.marked = marked;
-        release.adapterNotifier.notifyItemChanged(mUntagged.get(release).indexOf(track));
+        notifier.notifyItemChanged(mUntagged.indexOf(release));
     }
 
     public void removeUntaggedRelease(UntaggedRelease untaggedRelease) {
+        final int position = mUntagged.indexOf(untaggedRelease);
         mUntagged.remove(untaggedRelease);
+        notifier.notifyItemRemoved(position);
     }
 
     public interface OnItemClickListener {
@@ -248,8 +240,6 @@ public class UntaggedListAdapter extends RecyclerView.Adapter<UntaggedListAdapte
         RecyclerView recycler;
         @Bind(R.id.icon_collapse)
         View collapseButton;
-
-       // ChildAdapter adapter = new ChildAdapter();
 
         public ParentViewHolder(View itemView) {
             super(itemView);
@@ -281,10 +271,12 @@ public class UntaggedListAdapter extends RecyclerView.Adapter<UntaggedListAdapte
     }
 
     public class ChildAdapter extends RecyclerView.Adapter<ChildAdapter.ChildViewHolder> {
-        private UntaggedRelease mUntaggedRelease;
+        private final UntaggedRelease mUntaggedRelease;
+        public final RecyclerViewAdapterNotifier notifier;
 
         public ChildAdapter(UntaggedRelease untaggedRelease) {
             mUntaggedRelease = untaggedRelease;
+            notifier = new RecyclerViewAdapterNotifier(this);
         }
 
         @Override
@@ -295,8 +287,8 @@ public class UntaggedListAdapter extends RecyclerView.Adapter<UntaggedListAdapte
 
         @Override
         public void onBindViewHolder(ChildViewHolder holder, int position) {
-            OrderedHashSet<UntaggedTrack> tracks = mUntagged.get(mUntaggedRelease);
-            UntaggedTrack untaggedTrack = tracks.get(position);
+            final OrderedHashSet<UntaggedTrack> tracks = getUntaggedTracks();
+            final UntaggedTrack untaggedTrack = tracks.get(position);
             holder.text.setText(untaggedTrack.name);
             int bgColorResId = untaggedTrack.marked ? R.color.colorAccent : R.color.transparent;
             holder.root.setBackgroundColor(ContextCompat.getColor(Musicbrainz.getAppContext(), bgColorResId));
@@ -304,8 +296,26 @@ public class UntaggedListAdapter extends RecyclerView.Adapter<UntaggedListAdapte
 
         @Override
         public int getItemCount() {
-            OrderedHashSet tracks = mUntagged.get(mUntaggedRelease);
+            final OrderedHashSet tracks = getUntaggedTracks();
             return tracks == null ? 0 : tracks.size();
+        }
+
+        public OrderedHashSet<UntaggedTrack> getUntaggedTracks() {
+            return mUntagged.get(mUntaggedRelease);
+        }
+
+        public void refresh(int position) {
+            getUntaggedTracks().get(position).updateName();
+            notifier.notifyItemChanged(position);
+        }
+
+        public void refreshAll() {
+            final OrderedHashSet<UntaggedTrack> untaggedTracks = getUntaggedTracks();
+            final int size = untaggedTracks.size();
+            for (int i = 0; i < size; ++i) {
+                untaggedTracks.get(i).updateName();
+                notifier.notifyItemChanged(i);
+            }
         }
 
         public class ChildViewHolder extends RecyclerView.ViewHolder {
@@ -327,7 +337,6 @@ public class UntaggedListAdapter extends RecyclerView.Adapter<UntaggedListAdapte
         String artist;
         boolean marked = false;
         ChildAdapter childAdapter = new ChildAdapter(this);
-        RecyclerViewAdapterNotifier adapterNotifier = new RecyclerViewAdapterNotifier(childAdapter);
 
         @Override
         public boolean equals(Object o) {

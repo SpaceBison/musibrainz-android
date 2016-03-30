@@ -33,7 +33,7 @@ public class TaggerListAdapter extends RecyclerView.Adapter<TaggerListAdapter.Pa
     private static final String TAG = "UntaggedListAdapter";
     private final OrderedHashSet<ReleaseTag> mReleaseTags = new OrderedHashSet<>();
     private final ExecutorService mExecutor = Executors.newSingleThreadExecutor();
-    private final RecyclerViewAdapterNotifier mNotifier = new RecyclerViewAdapterNotifier(this);
+    public final RecyclerViewAdapterNotifier notifier = new RecyclerViewAdapterNotifier(this);
     private OnTrackTagClickListener mOnTrackTagClickListener;
     private OnTrackTagLongClickListener mOnTrackTagLongClickListener;
     private OnReleaseTagClickListener mOnReleaseTagClickListener;
@@ -116,16 +116,17 @@ public class TaggerListAdapter extends RecyclerView.Adapter<TaggerListAdapter.Pa
         }
 
         mReleaseTags.add(releaseTag);
-        mNotifier.notifyItemChanged(mReleaseTags.size() - 1);
+        notifier.notifyItemInserted();
     }
 
-    public void setUntaggedRelease(ReleaseTag releaseTag, UntaggedRelease untaggedRelease, List<UntaggedTrack> untaggedTracks) {
+    public void setUntaggedRelease(ReleaseTag releaseTag, UntaggedRelease untaggedRelease) {
         releaseTag.untagged = untaggedRelease;
 
         final ChildAdapter childAdapter = releaseTag.childAdapter;
-        ArrayList<TrackTag> trackTags = new ArrayList<>(childAdapter.mTrackTags);
+        final ArrayList<TrackTag> trackTags = new ArrayList<>(childAdapter.mTrackTags);
+        final OrderedHashSet<UntaggedTrack> untaggedTracks = untaggedRelease.childAdapter.getUntaggedTracks();
 
-        Levenshtein levenshtein = new Levenshtein();
+        final Levenshtein levenshtein = new Levenshtein();
 
         for (Iterator<TrackTag> it = trackTags.iterator(); it.hasNext();) {
             TrackTag tt = it.next();
@@ -135,7 +136,9 @@ public class TaggerListAdapter extends RecyclerView.Adapter<TaggerListAdapter.Pa
             }
         }
 
-        for (UntaggedTrack ut : untaggedTracks) {
+        final int size = untaggedTracks.size();
+        for (int i = 0; i < size; ++i) {
+            UntaggedTrack ut = untaggedTracks.get(i);
             double bestScore = Double.POSITIVE_INFINITY;
             TrackTag bestTrack = null;
 
@@ -151,6 +154,7 @@ public class TaggerListAdapter extends RecyclerView.Adapter<TaggerListAdapter.Pa
             if (bestTrack != null) {
                 bestTrack.untaggedTrack = ut;
                 trackTags.remove(bestTrack);
+                childAdapter.notifier.notifyItemChanged(i);
             }
         }
 
@@ -218,7 +222,8 @@ public class TaggerListAdapter extends RecyclerView.Adapter<TaggerListAdapter.Pa
     }
 
     public class ChildAdapter extends RecyclerView.Adapter<ChildAdapter.ChildViewHolder> {
-        private ReleaseTag mReleaseTag;
+        private final ReleaseTag mReleaseTag;
+        public final RecyclerViewAdapterNotifier notifier = new RecyclerViewAdapterNotifier(this);
         private List<TrackTag> mTrackTags;
 
         public ChildAdapter(ReleaseTag releaseTag) {
@@ -231,12 +236,23 @@ public class TaggerListAdapter extends RecyclerView.Adapter<TaggerListAdapter.Pa
         }
 
         public void updateTracks() {
+            int size = 0;
+
+            if (mTrackTags != null) {
+                size = mTrackTags.size();
+            }
+
             mTrackTags = new LinkedList<>();
+
+            if (size > 0) {
+                notifier.notifyItemRangeRemoved(0, size);
+            }
 
             for (Medium m : mReleaseTag.release.getMedia()) {
                 List<Track> tracks = m.getTracks();
                 for (Track t : tracks) {
                     mTrackTags.add(new TrackTag(t));
+                    notifier.notifyItemInserted(mTrackTags.size() - 1);
                 }
             }
         }
@@ -257,6 +273,12 @@ public class TaggerListAdapter extends RecyclerView.Adapter<TaggerListAdapter.Pa
                 holder.text2.setVisibility(View.VISIBLE);
             } else {
                 holder.text2.setVisibility(View.GONE);
+            }
+
+            if (trackTag.tagged) {
+                holder.taggedIndicator.animate().alpha(1);
+            } else {
+                holder.taggedIndicator.animate().alpha(0);
             }
 
             holder.root.setOnClickListener(new View.OnClickListener() {
@@ -293,6 +315,8 @@ public class TaggerListAdapter extends RecyclerView.Adapter<TaggerListAdapter.Pa
             TextView text;
             @Bind(R.id.text2)
             TextView text2;
+            @Bind(R.id.tagged_indicator)
+            View taggedIndicator;
 
             public ChildViewHolder(View itemView) {
                 super(itemView);
@@ -347,7 +371,6 @@ public class TaggerListAdapter extends RecyclerView.Adapter<TaggerListAdapter.Pa
             TrackTag trackTag = (TrackTag) o;
 
             return !(track != null ? !track.equals(trackTag.track) : trackTag.track != null);
-
         }
 
         @Override

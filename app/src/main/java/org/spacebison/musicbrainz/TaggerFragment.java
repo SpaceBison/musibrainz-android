@@ -78,7 +78,7 @@ public class TaggerFragment extends Fragment {
             @Override
             protected Void doInBackground(Void... params) {
                 List<TaggerListAdapter.ReleaseTag> releaseTags = mAdapter.getReleaseTags();
-                for (TaggerListAdapter.ReleaseTag rt : releaseTags) {
+                for (final TaggerListAdapter.ReleaseTag rt : releaseTags) {
                     Release release = rt.release;
                     String albumTitle = release.getTitle();
                     String albumArtistName = null;
@@ -91,10 +91,19 @@ public class TaggerFragment extends Fragment {
                         albumArtistSort = albumArtist.getSort_name();
                     }
 
-                    List<TaggerListAdapter.TrackTag> trackTags = rt.childAdapter.getTrackTags();
-                    for (TaggerListAdapter.TrackTag tt : trackTags) {
+                    final TaggerListAdapter.ChildAdapter childAdapter = rt.childAdapter;
+                    final List<TaggerListAdapter.TrackTag> trackTags = childAdapter.getTrackTags();
+                    final int size = trackTags.size();
+                    for (int i = 0; i < size; ++i) {
+                        final TaggerListAdapter.TrackTag tt = trackTags.get(i);
+                        final UntaggedListAdapter.UntaggedTrack untaggedTrack = tt.untaggedTrack;
+
+                        if (untaggedTrack == null) {
+                            continue;
+                        }
+
                         try {
-                            final AudioFile audioFile = AudioFileIO.read(tt.untaggedTrack.file);
+                            final AudioFile audioFile = AudioFileIO.read(untaggedTrack.file);
                             final Tag tag = audioFile.getTagOrCreateDefault();
                             final Track track = tt.track;
 
@@ -118,9 +127,19 @@ public class TaggerFragment extends Fragment {
 
                             tag.setField(FieldKey.YEAR, release.getDate());
                             tag.setField(FieldKey.MUSICBRAINZ_RELEASE_COUNTRY, release.getCountry());
-                            tag.setField(FieldKey.BARCODE, release.getBarcode().toString());
+                            tag.setField(FieldKey.BARCODE, release.getBarcode());
                             audioFile.setTag(tag);
                             audioFile.commit();
+
+                            final int position = i;
+                            mExecutor.execute(new Runnable() {
+                                @Override
+                                public void run() {
+                                    untaggedTrack.updateName();
+                                    childAdapter.notifier.notifyItemChanged(position);
+                                }
+                            });
+
                             Log.d(TAG, "Saved tags for " + audioFile.getFile().getName());
                         } catch (CannotReadException | IOException | ReadOnlyFileException | InvalidAudioFrameException | TagException | CannotWriteException e) {
                             e.printStackTrace();
