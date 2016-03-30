@@ -176,7 +176,7 @@ public class MainActivity extends AppCompatActivity implements ViewPager.OnPageC
                                     public void onClick(DialogInterface dialog, int which) {
                                         mTaggerFragment.saveTags();
                                     }
-                                });
+                                }).show();
                     }
                 });
         }

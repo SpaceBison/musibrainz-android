@@ -226,6 +226,10 @@ public class TaggerListAdapter extends RecyclerView.Adapter<TaggerListAdapter.Pa
             updateTracks();
         }
 
+        public List<TrackTag> getTrackTags() {
+            return mTrackTags;
+        }
+
         public void updateTracks() {
             mTrackTags = new LinkedList<>();
 
@@ -301,6 +305,7 @@ public class TaggerListAdapter extends RecyclerView.Adapter<TaggerListAdapter.Pa
         public UntaggedRelease untagged;
         public Release release;
         public ChildAdapter childAdapter;
+        public boolean tagged = false;
         public RecyclerViewAdapterNotifier adapterNotifier = new RecyclerViewAdapterNotifier(childAdapter);
 
         public ReleaseTag(Release release) {
@@ -328,6 +333,7 @@ public class TaggerListAdapter extends RecyclerView.Adapter<TaggerListAdapter.Pa
     public static class TrackTag {
         public Track track;
         public UntaggedTrack untaggedTrack;
+        public boolean tagged = false;
 
         public TrackTag(Track track) {
             this.track = track;
