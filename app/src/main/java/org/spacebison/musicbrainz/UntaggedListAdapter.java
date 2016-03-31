@@ -61,20 +61,11 @@ public class UntaggedListAdapter extends RecyclerView.Adapter<UntaggedListAdapte
         }
 
         final UntaggedRelease untaggedRelease = entry.getKey();
-
         holder.recycler.setAdapter(untaggedRelease.childAdapter);
 
-        if (untaggedRelease.album != null && !untaggedRelease.album.isEmpty()) {
-            if (untaggedRelease.artist != null && !untaggedRelease.artist.isEmpty()) {
-                holder.text.setText(untaggedRelease.artist + " - " + untaggedRelease.album);
-            } else {
-                holder.text.setText(untaggedRelease.file.getName());
-            }
-        } else {
-            holder.text.setText(untaggedRelease.file.getName());
-        }
+        holder.text.setText(untaggedRelease.getName());
 
-        int bgColorResId = untaggedRelease.marked ? R.color.colorAccent : R.color.transparent;
+        int bgColorResId = untaggedRelease.marked ? R.color.colorAccentTransparent : R.color.transparent;
         holder.root.setBackgroundColor(ContextCompat.getColor(Musicbrainz.getAppContext(), bgColorResId));
         holder.root.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -155,13 +146,13 @@ public class UntaggedListAdapter extends RecyclerView.Adapter<UntaggedListAdapte
 
                     if (tag != null) {
                         try {
-                            untaggedTrack.name = tag.getFirst(FieldKey.TITLE);
+                            untaggedTrack.title = tag.getFirst(FieldKey.TITLE);
                         } catch (KeyNotFoundException ignored) {
                         }
                     }
 
-                    if (untaggedTrack.name == null || untaggedTrack.name.isEmpty()) {
-                        untaggedTrack.name = untaggedTrack.file.getName();
+                    if (untaggedTrack.title == null || untaggedTrack.title.isEmpty()) {
+                        untaggedTrack.title = untaggedTrack.file.getName();
                     }
 
                     UntaggedRelease untaggedRelease = new UntaggedRelease();
@@ -185,9 +176,9 @@ public class UntaggedListAdapter extends RecyclerView.Adapter<UntaggedListAdapte
                             notifier.notifyItemChanged(position);
                         } else {
                             final OrderedHashSet<UntaggedTrack> dirSet = new OrderedHashSet<>();
-                            dirSet.add(untaggedTrack);
                             mUntagged.put(untaggedRelease, dirSet);
-                            notifier.notifyItemInserted(mUntagged.size() - 1);
+                            dirSet.add(untaggedTrack);
+                            notifier.notifyItemInserted();
                         }
                     }
                 }
@@ -204,15 +195,44 @@ public class UntaggedListAdapter extends RecyclerView.Adapter<UntaggedListAdapte
         notifier.notifyItemChanged(mUntagged.indexOf(release));
     }
 
-    public void setMarked(UntaggedRelease release, UntaggedTrack track, boolean marked) {
+    public void setMarked(final UntaggedTrack track, boolean marked) {
         track.marked = marked;
-        notifier.notifyItemChanged(mUntagged.indexOf(release));
+
+        mExecutor.execute(new Runnable() {
+            @Override
+            public void run() {
+                for (Map.Entry<UntaggedRelease, OrderedHashSet<UntaggedTrack>> entry : mUntagged.entrySet()) {
+                    final OrderedHashSet<UntaggedTrack> untaggedTracks = entry.getValue();
+                    if (untaggedTracks.contains(track)) {
+                        entry.getKey().childAdapter.notifier.notifyItemChanged(untaggedTracks.indexOf(track));
+                        break;
+                    }
+                }
+            }
+        });
     }
 
     public void removeUntaggedRelease(UntaggedRelease untaggedRelease) {
         final int position = mUntagged.indexOf(untaggedRelease);
         mUntagged.remove(untaggedRelease);
         notifier.notifyItemRemoved(position);
+    }
+
+    public void removeUntaggedTrack(final UntaggedTrack untaggedTrack) {
+        mExecutor.execute(new Runnable() {
+            @Override
+            public void run() {
+                for (Map.Entry<UntaggedRelease, OrderedHashSet<UntaggedTrack>> entry : mUntagged.entrySet()) {
+                    final OrderedHashSet<UntaggedTrack> untaggedTracks = entry.getValue();
+                    if (untaggedTracks.contains(untaggedTrack)) {
+                        final int position = untaggedTracks.indexOf(untaggedTrack);
+                        untaggedTracks.remove(position);
+                        entry.getKey().childAdapter.notifier.notifyItemRemoved(position);
+                        break;
+                    }
+                }
+            }
+        });
     }
 
     public interface OnItemClickListener {
@@ -245,6 +265,7 @@ public class UntaggedListAdapter extends RecyclerView.Adapter<UntaggedListAdapte
             super(itemView);
             ButterKnife.bind(this, itemView);
             recycler.setLayoutManager(new LinearLayoutManager(itemView.getContext()));
+            recycler.setNestedScrollingEnabled(false);
             collapseButton.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
@@ -289,7 +310,7 @@ public class UntaggedListAdapter extends RecyclerView.Adapter<UntaggedListAdapte
         public void onBindViewHolder(ChildViewHolder holder, int position) {
             final OrderedHashSet<UntaggedTrack> tracks = getUntaggedTracks();
             final UntaggedTrack untaggedTrack = tracks.get(position);
-            holder.text.setText(untaggedTrack.name);
+            holder.text.setText(untaggedTrack.title);
             int bgColorResId = untaggedTrack.marked ? R.color.colorAccent : R.color.transparent;
             holder.root.setBackgroundColor(ContextCompat.getColor(Musicbrainz.getAppContext(), bgColorResId));
         }
@@ -338,6 +359,15 @@ public class UntaggedListAdapter extends RecyclerView.Adapter<UntaggedListAdapte
         boolean marked = false;
         ChildAdapter childAdapter = new ChildAdapter(this);
 
+        public String getName() {
+            if (album != null && !album.isEmpty() &&
+                    artist != null && !artist.isEmpty()) {
+                return artist + " - " + album;
+            } else {
+                return file.getName();
+            }
+        }
+
         @Override
         public boolean equals(Object o) {
             if (this == o) return true;
@@ -357,7 +387,10 @@ public class UntaggedListAdapter extends RecyclerView.Adapter<UntaggedListAdapte
 
     public static class UntaggedTrack {
         File file;
-        String name;
+        String title;
+        String album;
+        String artist;
+        int track;
         boolean marked;
 
         public String updateName() {
@@ -366,12 +399,15 @@ public class UntaggedListAdapter extends RecyclerView.Adapter<UntaggedListAdapte
                 Tag tag = audioFile.getTag();
 
                 if(tag != null) {
-                    name = tag.getFirst(FieldKey.TITLE);
+                    title = tag.getFirst(FieldKey.TITLE);
+                    album = tag.getFirst(FieldKey.ALBUM);
+                    artist = tag.getFirst(FieldKey.ARTIST);
+                    track = Integer.parseInt(tag.getFirst(FieldKey.TRACK));
                 }
             } catch (TagException | KeyNotFoundException | ReadOnlyFileException | InvalidAudioFrameException | IOException | CannotReadException e) {
                 e.printStackTrace();
             }
-            return name;
+            return title;
         }
 
         @Override

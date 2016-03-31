@@ -143,7 +143,7 @@ public class TaggerListAdapter extends RecyclerView.Adapter<TaggerListAdapter.Pa
             TrackTag bestTrack = null;
 
             for (TrackTag tt : trackTags) {
-                double score = levenshtein.distance(ut.name, tt.track.getTitle());
+                double score = levenshtein.distance(ut.title, tt.track.getTitle());
 
                 if (score < bestScore) {
                     bestScore = score;
@@ -196,6 +196,7 @@ public class TaggerListAdapter extends RecyclerView.Adapter<TaggerListAdapter.Pa
             super(itemView);
             ButterKnife.bind(this, itemView);
             recycler.setLayoutManager(new LinearLayoutManager(itemView.getContext()));
+            recycler.setNestedScrollingEnabled(false);
             collapseButton.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
@@ -269,7 +270,7 @@ public class TaggerListAdapter extends RecyclerView.Adapter<TaggerListAdapter.Pa
             holder.text.setText(trackTag.track.getTitle());
 
             if (trackTag.untaggedTrack != null) {
-                holder.text2.setText(trackTag.untaggedTrack.name);
+                holder.text2.setText(trackTag.untaggedTrack.title);
                 holder.text2.setVisibility(View.VISIBLE);
             } else {
                 holder.text2.setVisibility(View.GONE);

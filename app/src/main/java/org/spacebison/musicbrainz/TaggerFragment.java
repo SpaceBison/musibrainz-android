@@ -136,6 +136,7 @@ public class TaggerFragment extends Fragment {
                                 @Override
                                 public void run() {
                                     untaggedTrack.updateName();
+                                    tt.tagged = true;
                                     childAdapter.notifier.notifyItemChanged(position);
                                 }
                             });

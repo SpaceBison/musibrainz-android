@@ -2,6 +2,7 @@ package org.spacebison.musicbrainz;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.support.design.widget.AppBarLayout;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
@@ -19,7 +20,7 @@ import butterknife.ButterKnife;
 /**
  * Created by cmb on 09.03.16.
  */
-public class FilePickerActivity extends AppCompatActivity implements FilePickerAdapter.Listener {
+public class FilePickerActivity extends AppCompatActivity implements FilePickerAdapter.Listener, FilePickerAdapter.OnItemCheckedListener {
     public static final String EXTRA_DIR = "org.spacebison.musicbrainz.EXTRA_DIR";
     public static final String EXTRA_FILES = "org.spacebison.musicbrainz.EXTRA_FILES";
 
@@ -27,6 +28,8 @@ public class FilePickerActivity extends AppCompatActivity implements FilePickerA
     RecyclerView mRecyclerView;
     @Bind(R.id.toolbar)
     Toolbar mToolbar;
+    @Bind(R.id.app_bar)
+    AppBarLayout mAppBar;
 
     private FilePickerAdapter mAdapter;
 
@@ -41,6 +44,7 @@ public class FilePickerActivity extends AppCompatActivity implements FilePickerA
         final File dir = (File) getIntent().getSerializableExtra(EXTRA_DIR);
         mAdapter = new FilePickerAdapter(dir);
         mAdapter.setListener(this);
+        mAdapter.setOnItemCheckedListener(this);
         mRecyclerView.setLayoutManager(new LinearLayoutManager(this));
         mRecyclerView.setAdapter(mAdapter);
         onDirChanged(dir);
@@ -54,6 +58,8 @@ public class FilePickerActivity extends AppCompatActivity implements FilePickerA
                 actionBar.setTitle(dir.getName());
             }
         }
+
+        mAppBar.setExpanded(true);
     }
 
     @Override
@@ -94,5 +100,10 @@ public class FilePickerActivity extends AppCompatActivity implements FilePickerA
             default:
                 return super.onOptionsItemSelected(item);
         }
+    }
+
+    @Override
+    public void onItemChecked(File file, boolean isChecked) {
+        mAppBar.setExpanded(true);
     }
 }

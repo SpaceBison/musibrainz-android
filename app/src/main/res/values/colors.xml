@@ -5,6 +5,8 @@
     <color name="colorAccent">#eb743b</color>
     <color name="transparent">#0000</color>
 
+    <color name="colorAccentTransparent">#61eb743b</color>
+
     <!-- Material colors -->
     <color name="textColor">#de000000</color>
     <color name="textColorSecondary">#8a000000</color>

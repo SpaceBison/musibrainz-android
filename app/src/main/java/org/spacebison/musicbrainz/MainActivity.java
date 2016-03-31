@@ -93,8 +93,8 @@ public class MainActivity extends AppCompatActivity implements ViewPager.OnPageC
             @Override
             public void onSectionLongClick(final UntaggedListAdapter adapter, final UntaggedListAdapter.UntaggedRelease untaggedRelease) {
                 CharSequence[] items = new CharSequence[]{"Search in browser", "Tag"};
-                AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
-                builder.setItems(items, new DialogInterface.OnClickListener() {
+                new AlertDialog.Builder(MainActivity.this)
+                .setItems(items, new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
                         switch (which) {
@@ -116,6 +116,7 @@ public class MainActivity extends AppCompatActivity implements ViewPager.OnPageC
                                     @Override
                                     public void onReleaseTagClick(final TaggerListAdapter taggerListAdapter, final TaggerListAdapter.ReleaseTag release) {
                                         new AlertDialog.Builder(MainActivity.this)
+                                                .setTitle(release.release.getTitle())
                                                 .setMessage("Tag?")
                                                 .setNegativeButton(android.R.string.cancel, null)
                                                 .setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
@@ -123,7 +124,6 @@ public class MainActivity extends AppCompatActivity implements ViewPager.OnPageC
                                                     public void onClick(DialogInterface dialog, int which) {
                                                         taggerListAdapter.setUntaggedRelease(release, untaggedRelease);
                                                         adapter.removeUntaggedRelease(untaggedRelease);
-                                                        adapter.notifyDataSetChanged();
                                                     }
                                                 }).show();
                                     }
@@ -131,8 +131,53 @@ public class MainActivity extends AppCompatActivity implements ViewPager.OnPageC
                                 mViewPager.setCurrentItem(1, true);
                         }
                     }
-                });
-                builder.show();
+                }).show();
+            }
+        });
+        mUntaggedListFragment.setOnItemLongClickListener(new UntaggedListAdapter.OnItemLongClickListener() {
+            @Override
+            public void onItemLongClick(final UntaggedListAdapter adapter, final UntaggedListAdapter.UntaggedTrack untaggedTrack) {
+                CharSequence[] items = new CharSequence[]{"Search in browser", "Tag"};
+                new AlertDialog.Builder(MainActivity.this)
+                .setItems(items, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        switch (which) {
+                            case 0:
+                                Uri.Builder uriBuilder = new Uri.Builder()
+                                        .scheme("http")
+                                        .authority("musicbrainz.org")
+                                        .appendPath("taglookup")
+                                        .appendQueryParameter("tport", Integer.toString(mPort))
+                                        .appendQueryParameter("tag-lookup.title", untaggedTrack.title)
+                                        .appendQueryParameter("tag-lookup.release", untaggedTrack.album)
+                                        .appendQueryParameter("tag-lookup.artist", untaggedTrack.artist);
+                                int color = ContextCompat.getColor(MainActivity.this, R.color.colorPrimary);
+                                startActivity(Utils.getChromeCustomTabIntent(uriBuilder.build(), color));
+                                break;
+
+                            case 1:
+                                adapter.setMarked(untaggedTrack, true);
+                                mTaggerFragment.setOnTrackClickListener(new TaggerListAdapter.OnTrackTagClickListener() {
+                                    @Override
+                                    public void onTrackTagClick(final TaggerListAdapter taggerListAdapter, TaggerListAdapter.ReleaseTag releaseTag, final TaggerListAdapter.TrackTag track) {
+                                        new AlertDialog.Builder(MainActivity.this)
+                                                .setMessage("Tag?")
+                                                .setNegativeButton(android.R.string.cancel, null)
+                                                .setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
+                                                    @Override
+                                                    public void onClick(DialogInterface dialog, int which) {
+                                                        taggerListAdapter.setUntaggedTrack(track, untaggedTrack);
+                                                        adapter.removeUntaggedTrack(untaggedTrack);
+                                                    }
+                                                }).show();
+                                    }
+                                });
+
+                                mViewPager.setCurrentItem(1, true);
+                        }
+                    }
+                }).show();
             }
         });
     }

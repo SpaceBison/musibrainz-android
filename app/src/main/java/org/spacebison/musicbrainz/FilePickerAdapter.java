@@ -35,6 +35,15 @@ public class FilePickerAdapter extends RecyclerView.Adapter<FilePickerAdapter.Vi
     private File mCurrentDir;
     private File[] mFiles;
     private Listener mListener;
+    private OnItemCheckedListener mOnItemCheckedListener;
+
+    public void setOnItemCheckedListener(OnItemCheckedListener onItemCheckedListener) {
+        mOnItemCheckedListener = onItemCheckedListener;
+    }
+
+    public interface OnItemCheckedListener {
+        void onItemChecked(File file, boolean isChecked);
+    }
 
     public FilePickerAdapter(File currentDir) {
         if (currentDir != null && currentDir.isDirectory()) {
@@ -63,6 +72,10 @@ public class FilePickerAdapter extends RecyclerView.Adapter<FilePickerAdapter.Vi
                     mCheckedFiles.add(file);
                 } else {
                     mCheckedFiles.remove(file);
+                }
+
+                if (mOnItemCheckedListener != null) {
+                    mOnItemCheckedListener.onItemChecked(file, isChecked);
                 }
             }
         });

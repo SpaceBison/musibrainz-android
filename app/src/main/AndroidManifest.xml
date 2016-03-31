@@ -36,7 +36,7 @@
 
         <activity
             android:name=".FilePickerActivity"
-            android:theme="@style/AppTheme.NoActionBar"/>
+            android:theme="@style/AppTheme.Dialog"/>
 
     </application>
 
