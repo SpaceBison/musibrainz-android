@@ -6,7 +6,8 @@
     android:layout_width="match_parent"
     android:gravity="center_vertical"
     android:orientation="vertical"
-    android:background="?attr/selectableItemBackground">
+    android:background="?attr/selectableItemBackground"
+    android:clickable="true">
 
     <View
         android:layout_width="match_parent"

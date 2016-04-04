@@ -19,4 +19,7 @@
     <color name="textColorHintDark">#7fffffff</color>
     <color name="textColorLightDark">#ffffffff</color>
     <color name="dividerColorDark">#1fffffff</color>
+
+
+    <color name="white">#ffffff</color>
 </resources>

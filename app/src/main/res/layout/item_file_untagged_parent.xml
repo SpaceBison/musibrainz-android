@@ -13,6 +13,7 @@
         android:layout_height="@dimen/section_size"
         android:gravity="center_vertical"
         android:orientation="horizontal"
+        android:clickable="true"
         android:background="?attr/selectableItemBackground">
 
         <TextView

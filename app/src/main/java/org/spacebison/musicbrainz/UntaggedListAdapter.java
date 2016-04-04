@@ -313,6 +313,25 @@ public class UntaggedListAdapter extends RecyclerView.Adapter<UntaggedListAdapte
             holder.text.setText(untaggedTrack.title);
             int bgColorResId = untaggedTrack.marked ? R.color.colorAccent : R.color.transparent;
             holder.root.setBackgroundColor(ContextCompat.getColor(Musicbrainz.getAppContext(), bgColorResId));
+            holder.root.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    if (mOnItemClickListener != null) {
+                        mOnItemClickListener.onItemClick(UntaggedListAdapter.this, untaggedTrack);
+                    }
+                }
+            });
+            holder.root.setOnLongClickListener(new View.OnLongClickListener() {
+                @Override
+                public boolean onLongClick(View v) {
+                    if (mOnItemLongClickListener != null) {
+                        mOnItemLongClickListener.onItemLongClick(UntaggedListAdapter.this, untaggedTrack);
+                        return true;
+                    } else {
+                        return false;
+                    }
+                }
+            });
         }
 
         @Override
