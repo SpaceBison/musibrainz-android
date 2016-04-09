@@ -14,7 +14,7 @@
         android:theme="@style/AppTheme.NoActionBar">
         <activity
             android:name=".MainActivity"
-            android:label="@string/title_activity_file_chooser"
+            android:label="@string/app_name"
             android:theme="@style/AppTheme.NoActionBar"
             android:launchMode="singleTask">
             <intent-filter>
@@ -38,6 +38,9 @@
             android:name=".FilePickerActivity"
             android:theme="@style/AppTheme.Dialog"/>
 
+        <meta-data
+            android:name="io.fabric.ApiKey"
+            android:value="ee6f4a84a024ba5df48c32c60245c9c81d3c8d84" />
     </application>
 
 </manifest>

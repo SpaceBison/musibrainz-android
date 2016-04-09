@@ -25,13 +25,14 @@ import android.widget.ProgressBar;
 import org.chromium.customtabsclient.shared.CustomTabsHelper;
 import org.chromium.customtabsclient.shared.ServiceConnection;
 import org.chromium.customtabsclient.shared.ServiceConnectionCallback;
+import org.spacebison.progressviewcontroller.ProgressViewController;
 
 import java.io.File;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -51,7 +52,7 @@ public class MainActivity extends AppCompatActivity implements ViewPager.OnPageC
     public static final String MUSICBRAINZ_PARAM_RELEASE = "tag-lookup.release";
     public static final String MUSICBRAINZ_PARAM_FILENAME = "tag-lookup.filename";
 
-    private final ExecutorService mExecutor = Executors.newCachedThreadPool();
+    private final Executor mExecutor = Executors.newCachedThreadPool();
     private final AtomicInteger mProgressTaskCount = new AtomicInteger(0);
 
     private UntaggedListFragment mUntaggedListFragment;
@@ -75,6 +76,8 @@ public class MainActivity extends AppCompatActivity implements ViewPager.OnPageC
     @Bind(R.id.fab)
     FloatingActionButton mFab;
 
+    private ProgressViewController mProgressViewController;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -88,17 +91,19 @@ public class MainActivity extends AppCompatActivity implements ViewPager.OnPageC
         GenericFragmentPagerAdapter pagerAdapter = new GenericFragmentPagerAdapter(getSupportFragmentManager());
 
         mUntaggedListFragment = new UntaggedListFragment();
-        pagerAdapter.addFragment(mUntaggedListFragment);
+        pagerAdapter.addFragment(mUntaggedListFragment, "Untagged");
 
         mTaggerFragment = new TaggerFragment();
-        pagerAdapter.addFragment(mTaggerFragment);
+        pagerAdapter.addFragment(mTaggerFragment, "Tags");
 
         mViewPager.addOnPageChangeListener(this);
         mViewPager.setAdapter(pagerAdapter);
 
+        mProgressViewController = new ProgressViewController(mProgressBar);
+
         onPageSelected(0);
 
-        executeProgressTask(new Runnable() {
+        mExecutor.execute(new Runnable() {
             @Override
             public void run() {
                 do {
@@ -167,7 +172,7 @@ public class MainActivity extends AppCompatActivity implements ViewPager.OnPageC
                                                         .setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
                                                             @Override
                                                             public void onClick(DialogInterface dialog, int which) {
-                                                                executeProgressTask(new Runnable() {
+                                                                executeIndeterminateProgressTask(new Runnable() {
                                                                     @Override
                                                                     public void run() {
                                                                         taggerListAdapter.setUntaggedRelease(release, untaggedRelease);
@@ -229,7 +234,7 @@ public class MainActivity extends AppCompatActivity implements ViewPager.OnPageC
                                                         .setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
                                                             @Override
                                                             public void onClick(DialogInterface dialog, int which) {
-                                                                executeProgressTask(new Runnable() {
+                                                                executeIndeterminateProgressTask(new Runnable() {
                                                                     @Override
                                                                     public void run() {
                                                                         taggerListAdapter.setUntaggedTrack(releaseTag, track, untaggedTrack);
@@ -306,61 +311,30 @@ public class MainActivity extends AppCompatActivity implements ViewPager.OnPageC
         startActivityForResult(intent, CHOOSE_FILE_REQUEST_CODE);
     }
 
-    private void onProgressTaskStarted() {
-        final int tasks = mProgressTaskCount.getAndIncrement();
-        Log.d(TAG, "Progress task started: " + (tasks + 1) + " active");
-        if (tasks == 0) {
-            mProgressBar.post(new Runnable() {
-                @Override
-                public void run() {
-                    if (mProgressTaskCount.get() == 1) {
-                        Log.d(TAG, "Showing progressbar");
-                        mProgressBar.animate().alpha(1);
-                    } else {
-                        Log.d(TAG, "Progressbar already visible");
-                    }
-                }
-            });
-        }
-    }
-
-    private void onProgressTaskEnded() {
-        final int tasks = mProgressTaskCount.getAndDecrement();
-        Log.d(TAG, "Progress task ended: " + (tasks - 1) + " left");
-        if (tasks == 0) {
-            mProgressBar.post(new Runnable() {
-                @Override
-                public void run() {
-                    if (mProgressTaskCount.get() == 0) {
-                        Log.d(TAG, "Hiding progressbar");
-                        mProgressBar.animate().alpha(0);
-                    } else {
-                        Log.d(TAG, "Not hiding progrssbar yet");
-                    }
-                }
-            });
-        }
-    }
-
-    private void executeProgressTask(final Runnable runnable) {
-        onProgressTaskStarted();
+    private void executeIndeterminateProgressTask(final Runnable runnable) {
+        mProgressViewController.notifyIndeterminateTaskStarted();
+        //mProgressBar.setVisibility(View.VISIBLE);
         mExecutor.execute(new Runnable() {
             @Override
             public void run() {
                 runnable.run();
-                onProgressTaskEnded();
+                //mProgressBar.setVisibility(View.INVISIBLE);
+                mProgressViewController.notifyIndeterminateTaskFinished();
             }
         });
     }
 
     @Override
     public void onActivityResult(int requestCode, int resultCode, final Intent data) {
+        Log.d(TAG, "Activity result: " + resultCode + "; request: " + requestCode);
         if (requestCode == CHOOSE_FILE_REQUEST_CODE && resultCode == Activity.RESULT_OK) {
-            executeProgressTask(new Runnable() {
+            executeIndeterminateProgressTask(new Runnable() {
                 @Override
                 public void run() {
+                    Log.d(TAG, "Adding files");
                     Set<File> chosenFiles = (Set<File>) data.getSerializableExtra(FilePickerActivity.EXTRA_FILES);
                     mUntaggedListFragment.addFiles(chosenFiles);
+                    Log.d(TAG, "Added " + chosenFiles.size() + " files");
                 }
             });
 

@@ -19,31 +19,30 @@
         android:layout_height="wrap_content"
         android:theme="@style/AppTheme.AppBarOverlay">
 
-        <FrameLayout
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:minHeight="4dp"
-            app:layout_scrollFlags="scroll|enterAlways|exitUntilCollapsed">
+            android:orientation="vertical">
 
             <android.support.v7.widget.Toolbar
                 android:id="@+id/toolbar"
                 android:layout_width="match_parent"
                 android:layout_height="?attr/actionBarSize"
+                android:minHeight="4dp"
+                app:layout_scrollFlags="scroll|enterAlways|exitUntilCollapsed"
                 app:popupTheme="@style/AppTheme.PopupOverlay"/>
 
-            <ProgressBar
-                android:id="@+id/progress_bar"
-                android:layout_width="match_parent"
-                android:layout_height="4dp"
-                android:layout_gravity="bottom"
-                android:indeterminate="false"
-                android:progress="50"
-                android:alpha="1"
-                style="@style/Widget.AppCompat.ProgressBar.Horizontal"/>
 
-        </FrameLayout>
+        </LinearLayout>
 
     </android.support.design.widget.AppBarLayout>
+
+    <ProgressBar
+        android:id="@+id/progress_bar"
+        android:layout_width="match_parent"
+        android:layout_height="4dp"
+        android:layout_gravity="center"
+        style="@style/Widget.AppCompat.ProgressBar.Horizontal"/>
 
     <android.support.design.widget.FloatingActionButton
         android:id="@+id/fab"

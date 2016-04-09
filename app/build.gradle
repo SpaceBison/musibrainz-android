@@ -1,9 +1,24 @@
+buildscript {
+    repositories {
+        maven { url 'https://maven.fabric.io/public' }
+    }
+
+    dependencies {
+        classpath 'io.fabric.tools:gradle:1.+'
+    }
+}
 apply plugin: 'com.android.application'
+apply plugin: 'io.fabric'
+
+repositories {
+    maven { url 'https://maven.fabric.io/public' }
+}
+
 apply plugin: 'jsonschema2pojo'
 
 android {
     compileSdkVersion 23
-    buildToolsVersion "23.0.2"
+    buildToolsVersion "23.0.3"
 
     defaultConfig {
         applicationId "org.spacebison.musicbrainz"
@@ -27,18 +42,22 @@ android {
 dependencies {
     compile fileTree(include: ['*.jar'], dir: 'libs')
     testCompile 'junit:junit:4.12'
-    compile 'com.android.support:appcompat-v7:23.2.0'
-    compile 'com.android.support:design:23.2.0'
+    compile 'javax.annotation:jsr250-api:1.0'
+    compile 'com.android.support:appcompat-v7:23.3.0'
+    compile 'com.android.support:design:23.3.0'
+    compile 'com.google.code.gson:gson:2.6.2'
     compile 'com.jakewharton:butterknife:7.0.1'
+    compile 'org.apache.commons:commons-lang3:3.4'
+    compile 'org.jsonschema2pojo:jsonschema2pojo:0.4.22'
     compile 'org:jaudiotagger:2.0.3'
     compile 'org.nanohttpd:nanohttpd:2.3.0'
-    compile 'org.jsonschema2pojo:jsonschema2pojo:0.4.22'
-    compile 'org.apache.commons:commons-lang3:3.4'
-    compile 'com.google.code.gson:gson:2.6.2'
-    compile 'javax.annotation:jsr250-api:1.0'
     compile 'info.debatty:java-string-similarity:0.13'
     compile project(':customtabs')
     compile project(':customtabsshared')
+    compile project(':progressviewcontroller')
+    compile('com.crashlytics.sdk.android:crashlytics:2.5.5@aar') {
+        transitive = true;
+    }
 }
 
 // Each configuration is set to the default value

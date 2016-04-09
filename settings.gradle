@@ -1,1 +1,1 @@
-include ':app', ':customtabs', ':customtabsshared'
+include ':app', ':customtabs', ':customtabsshared', ':progressviewcontroller'
