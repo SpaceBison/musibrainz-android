@@ -27,8 +27,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 import butterknife.Bind;
 import butterknife.ButterKnife;
@@ -39,7 +37,6 @@ import butterknife.ButterKnife;
 public class UntaggedListAdapter extends RecyclerView.Adapter<UntaggedListAdapter.ParentViewHolder> {
     private static final String TAG = "UntaggedListAdapter";
     private final OrderedHashMap<UntaggedRelease, OrderedHashSet<UntaggedTrack>> mUntagged = new OrderedHashMap<>();
-    private final ExecutorService mExecutor = Executors.newSingleThreadExecutor();
     public final RecyclerViewAdapterNotifier notifier = new RecyclerViewAdapterNotifier(this);
     private OnItemClickListener mOnItemClickListener;
     private OnItemLongClickListener mOnItemLongClickListener;
@@ -113,126 +110,111 @@ public class UntaggedListAdapter extends RecyclerView.Adapter<UntaggedListAdapte
         mOnSectionLongClickListener = onSectionLongClickListener;
     }
 
-    public void addFiles(final Collection<File> files) {
-        mExecutor.execute(new Runnable() {
-            @Override
-            public void run() {
-                Log.d(TAG, "Adding " + files.size() + " parent files");
+    public synchronized void addFiles(final Collection<File> files) {
+        Log.d(TAG, "Adding " + files.size() + " parent files");
 
-                final Set<File> childFiles = new HashSet<File>();
-                for (File f : files) {
-                    childFiles.addAll(Utils.getFilesRecursively(f));
-                }
+        final Set<File> childFiles = new HashSet<File>();
+        for (File f : files) {
+            childFiles.addAll(Utils.getFilesRecursively(f));
+        }
 
-                Log.d(TAG, "Found " + childFiles.size() + " child files");
+        Log.d(TAG, "Found " + childFiles.size() + " child files");
 
-                for (File f : childFiles) {
-                    Log.d(TAG, "Adding file " + f.getName());
-                    File dir = f.getParentFile();
-                    AudioFile audioFile = null;
-                    try {
-                        audioFile = AudioFileIO.read(f);
-                    } catch (CannotReadException | IOException | ReadOnlyFileException | InvalidAudioFrameException | TagException e) {
-                        Log.w(TAG, "Error reading audio file: " + e);
-                    }
+        for (File f : childFiles) {
+            Log.d(TAG, "Adding file " + f.getName());
+            File dir = f.getParentFile();
+            AudioFile audioFile = null;
+            try {
+                audioFile = AudioFileIO.read(f);
+            } catch (CannotReadException | IOException | ReadOnlyFileException | InvalidAudioFrameException | TagException e) {
+                Log.w(TAG, "Error reading audio file: " + e);
+            }
 
-                    if (audioFile == null) {
-                        continue;
-                    }
+            if (audioFile == null) {
+                continue;
+            }
 
-                    UntaggedTrack untaggedTrack = new UntaggedTrack();
-                    untaggedTrack.file = f;
-                    Tag tag = audioFile.getTag();
+            UntaggedTrack untaggedTrack = new UntaggedTrack();
+            untaggedTrack.file = f;
+            Tag tag = audioFile.getTag();
 
-                    if (tag != null) {
-                        try {
-                            untaggedTrack.title = tag.getFirst(FieldKey.TITLE);
-                        } catch (KeyNotFoundException ignored) {
-                        }
-                    }
-
-                    if (untaggedTrack.title == null || untaggedTrack.title.isEmpty()) {
-                        untaggedTrack.title = untaggedTrack.file.getName();
-                    }
-
-                    UntaggedRelease untaggedRelease = new UntaggedRelease();
-                    untaggedRelease.file = dir;
-
-                    try {
-                        untaggedRelease.album = audioFile.getTag().getFirst(FieldKey.ALBUM);
-                    } catch (KeyNotFoundException ignored) {
-                    }
-
-                    try {
-                        untaggedRelease.artist = audioFile.getTag().getFirst(FieldKey.ARTIST);
-                    } catch (KeyNotFoundException ignored) {
-                    }
-
-                    synchronized (mUntagged) {
-                        if (mUntagged.containsKey(untaggedRelease)) {
-                            final OrderedHashSet<UntaggedTrack> dirSet = mUntagged.get(untaggedRelease);
-                            dirSet.add(untaggedTrack);
-                            final int position = mUntagged.lastIndexOf(untaggedRelease);
-                            notifier.notifyItemChanged(position);
-                        } else {
-                            final OrderedHashSet<UntaggedTrack> dirSet = new OrderedHashSet<>();
-                            mUntagged.put(untaggedRelease, dirSet);
-                            dirSet.add(untaggedTrack);
-                            notifier.notifyItemInserted();
-                        }
-                    }
+            if (tag != null) {
+                try {
+                    untaggedTrack.title = tag.getFirst(FieldKey.TITLE);
+                } catch (KeyNotFoundException ignored) {
                 }
             }
-        });
+
+            if (untaggedTrack.title == null || untaggedTrack.title.isEmpty()) {
+                untaggedTrack.title = untaggedTrack.file.getName();
+            }
+
+            UntaggedRelease untaggedRelease = new UntaggedRelease();
+            untaggedRelease.file = dir;
+
+            try {
+                untaggedRelease.album = audioFile.getTag().getFirst(FieldKey.ALBUM);
+            } catch (KeyNotFoundException ignored) {
+            }
+
+            try {
+                untaggedRelease.artist = audioFile.getTag().getFirst(FieldKey.ARTIST);
+            } catch (KeyNotFoundException ignored) {
+            }
+
+            synchronized (mUntagged) {
+                if (mUntagged.containsKey(untaggedRelease)) {
+                    final OrderedHashSet<UntaggedTrack> dirSet = mUntagged.get(untaggedRelease);
+                    dirSet.add(untaggedTrack);
+                    final int position = mUntagged.lastIndexOf(untaggedRelease);
+                    notifier.notifyItemChanged(position);
+                } else {
+                    final OrderedHashSet<UntaggedTrack> dirSet = new OrderedHashSet<>();
+                    mUntagged.put(untaggedRelease, dirSet);
+                    dirSet.add(untaggedTrack);
+                    notifier.notifyItemInserted();
+                }
+            }
+        }
     }
 
     public List<UntaggedTrack> getUntaggedTracks(UntaggedRelease untaggedRelease) {
         return mUntagged.get(untaggedRelease).toList();
     }
 
-    public void setMarked(UntaggedRelease release, boolean marked) {
+    public synchronized void setMarked(UntaggedRelease release, boolean marked) {
         release.marked = marked;
         notifier.notifyItemChanged(mUntagged.indexOf(release));
     }
 
-    public void setMarked(final UntaggedTrack track, boolean marked) {
+    public synchronized void setMarked(final UntaggedTrack track, boolean marked) {
         track.marked = marked;
 
-        mExecutor.execute(new Runnable() {
-            @Override
-            public void run() {
-                for (Map.Entry<UntaggedRelease, OrderedHashSet<UntaggedTrack>> entry : mUntagged.entrySet()) {
-                    final OrderedHashSet<UntaggedTrack> untaggedTracks = entry.getValue();
-                    if (untaggedTracks.contains(track)) {
-                        entry.getKey().childAdapter.notifier.notifyItemChanged(untaggedTracks.indexOf(track));
-                        break;
-                    }
-                }
+        for (Map.Entry<UntaggedRelease, OrderedHashSet<UntaggedTrack>> entry : mUntagged.entrySet()) {
+            final OrderedHashSet<UntaggedTrack> untaggedTracks = entry.getValue();
+            if (untaggedTracks.contains(track)) {
+                entry.getKey().childAdapter.notifier.notifyItemChanged(untaggedTracks.indexOf(track));
+                break;
             }
-        });
+        }
     }
 
-    public void removeUntaggedRelease(UntaggedRelease untaggedRelease) {
+    public synchronized void removeUntaggedRelease(UntaggedRelease untaggedRelease) {
         final int position = mUntagged.indexOf(untaggedRelease);
         mUntagged.remove(untaggedRelease);
         notifier.notifyItemRemoved(position);
     }
 
-    public void removeUntaggedTrack(final UntaggedTrack untaggedTrack) {
-        mExecutor.execute(new Runnable() {
-            @Override
-            public void run() {
-                for (Map.Entry<UntaggedRelease, OrderedHashSet<UntaggedTrack>> entry : mUntagged.entrySet()) {
-                    final OrderedHashSet<UntaggedTrack> untaggedTracks = entry.getValue();
-                    if (untaggedTracks.contains(untaggedTrack)) {
-                        final int position = untaggedTracks.indexOf(untaggedTrack);
-                        untaggedTracks.remove(position);
-                        entry.getKey().childAdapter.notifier.notifyItemRemoved(position);
-                        break;
-                    }
-                }
+    public synchronized void removeUntaggedTrack(final UntaggedTrack untaggedTrack) {
+        for (Map.Entry<UntaggedRelease, OrderedHashSet<UntaggedTrack>> entry : mUntagged.entrySet()) {
+            final OrderedHashSet<UntaggedTrack> untaggedTracks = entry.getValue();
+            if (untaggedTracks.contains(untaggedTrack)) {
+                final int position = untaggedTracks.indexOf(untaggedTrack);
+                untaggedTracks.remove(position);
+                entry.getKey().childAdapter.notifier.notifyItemRemoved(position);
+                break;
             }
-        });
+        }
     }
 
     public interface OnItemClickListener {

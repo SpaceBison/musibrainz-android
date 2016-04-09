@@ -20,6 +20,7 @@ import android.support.v7.widget.Toolbar;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.View;
+import android.widget.ProgressBar;
 
 import org.chromium.customtabsclient.shared.CustomTabsHelper;
 import org.chromium.customtabsclient.shared.ServiceConnection;
@@ -30,6 +31,9 @@ import java.io.IOException;
 import java.net.ServerSocket;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import butterknife.Bind;
 import butterknife.ButterKnife;
@@ -45,6 +49,10 @@ public class MainActivity extends AppCompatActivity implements ViewPager.OnPageC
     public static final String MUSICBRAINZ_PARAM_TITLE = "tag-lookup.title";
     public static final String MUSICBRAINZ_PARAM_ARTIST = "tag-lookup.artist";
     public static final String MUSICBRAINZ_PARAM_RELEASE = "tag-lookup.release";
+    public static final String MUSICBRAINZ_PARAM_FILENAME = "tag-lookup.filename";
+
+    private final ExecutorService mExecutor = Executors.newCachedThreadPool();
+    private final AtomicInteger mProgressTaskCount = new AtomicInteger(0);
 
     private UntaggedListFragment mUntaggedListFragment;
     private TaggerFragment mTaggerFragment;
@@ -56,15 +64,16 @@ public class MainActivity extends AppCompatActivity implements ViewPager.OnPageC
     private CustomTabsServiceConnection mConnection;
     private String mPackageNameToBind;
 
+    private WebServer mWebServer = null;
+
     @Bind(R.id.toolbar)
     Toolbar mToolbar;
+    @Bind(R.id.progress_bar)
+    ProgressBar mProgressBar;
     @Bind(R.id.view_pager)
     ViewPager mViewPager;
     @Bind(R.id.fab)
     FloatingActionButton mFab;
-
-    private GenericFragmentPagerAdapter mPagerAdapter;
-    private WebServer mWebServer = null;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -76,20 +85,20 @@ public class MainActivity extends AppCompatActivity implements ViewPager.OnPageC
 
         mPrimaryColor = ContextCompat.getColor(this, R.color.colorPrimary);
 
-        mPagerAdapter = new GenericFragmentPagerAdapter(getSupportFragmentManager());
+        GenericFragmentPagerAdapter pagerAdapter = new GenericFragmentPagerAdapter(getSupportFragmentManager());
 
         mUntaggedListFragment = new UntaggedListFragment();
-        mPagerAdapter.addFragment(mUntaggedListFragment);
+        pagerAdapter.addFragment(mUntaggedListFragment);
 
         mTaggerFragment = new TaggerFragment();
-        mPagerAdapter.addFragment(mTaggerFragment);
+        pagerAdapter.addFragment(mTaggerFragment);
 
         mViewPager.addOnPageChangeListener(this);
-        mViewPager.setAdapter(mPagerAdapter);
+        mViewPager.setAdapter(pagerAdapter);
 
         onPageSelected(0);
 
-        new Thread("ServerSocketThread") {
+        executeProgressTask(new Runnable() {
             @Override
             public void run() {
                 do {
@@ -108,7 +117,7 @@ public class MainActivity extends AppCompatActivity implements ViewPager.OnPageC
                     }
                 } while (mWebServer == null);
             }
-        }.start();
+        });
 
         mPackageNameToBind = CustomTabsHelper.getPackageNameToUse(this);
         bindCustomTabsService();
@@ -132,9 +141,16 @@ public class MainActivity extends AppCompatActivity implements ViewPager.OnPageC
                                                 .scheme(MUSICBRAINZ_QUERY_SCHEME)
                                                 .authority(MUSICBRAINZ_DOMAIN)
                                                 .appendPath(MUSICBRAINZ_TAG_LOOKUP)
-                                                .appendQueryParameter(MUSICBRAINZ_PARAM_PORT, Integer.toString(mPort))
-                                                .appendQueryParameter(MUSICBRAINZ_PARAM_RELEASE, untaggedRelease.album)
-                                                .appendQueryParameter(MUSICBRAINZ_PARAM_ARTIST, untaggedRelease.artist);
+                                                .appendQueryParameter(MUSICBRAINZ_PARAM_PORT, Integer.toString(mPort));
+
+                                        if (untaggedRelease.album != null) {
+                                            uriBuilder.appendQueryParameter(MUSICBRAINZ_PARAM_RELEASE, untaggedRelease.album);
+                                        }
+
+                                        if (untaggedRelease.artist != null) {
+                                            uriBuilder.appendQueryParameter(MUSICBRAINZ_PARAM_ARTIST, untaggedRelease.artist);
+                                        }
+
                                         launchPage(uriBuilder.build());
                                         break;
 
@@ -143,6 +159,7 @@ public class MainActivity extends AppCompatActivity implements ViewPager.OnPageC
                                         mTaggerFragment.setOnReleaseClickListener(new TaggerListAdapter.OnReleaseTagClickListener() {
                                             @Override
                                             public void onReleaseTagClick(final TaggerListAdapter taggerListAdapter, final TaggerListAdapter.ReleaseTag release) {
+                                                adapter.setMarked(untaggedRelease, false);
                                                 new AlertDialog.Builder(MainActivity.this)
                                                         .setTitle(release.release.getTitle())
                                                         .setMessage("Tag?")
@@ -150,8 +167,13 @@ public class MainActivity extends AppCompatActivity implements ViewPager.OnPageC
                                                         .setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
                                                             @Override
                                                             public void onClick(DialogInterface dialog, int which) {
-                                                                taggerListAdapter.setUntaggedRelease(release, untaggedRelease);
-                                                                adapter.removeUntaggedRelease(untaggedRelease);
+                                                                executeProgressTask(new Runnable() {
+                                                                    @Override
+                                                                    public void run() {
+                                                                        taggerListAdapter.setUntaggedRelease(release, untaggedRelease);
+                                                                        adapter.removeUntaggedRelease(untaggedRelease);
+                                                                    }
+                                                                });
                                                             }
                                                         }).show();
                                             }
@@ -178,9 +200,20 @@ public class MainActivity extends AppCompatActivity implements ViewPager.OnPageC
                                                 .authority(MUSICBRAINZ_DOMAIN)
                                                 .appendPath(MUSICBRAINZ_TAG_LOOKUP)
                                                 .appendQueryParameter(MUSICBRAINZ_PARAM_PORT, Integer.toString(mPort))
-                                                .appendQueryParameter(MUSICBRAINZ_PARAM_TITLE, untaggedTrack.title)
-                                                .appendQueryParameter(MUSICBRAINZ_PARAM_RELEASE, untaggedTrack.album)
-                                                .appendQueryParameter(MUSICBRAINZ_PARAM_ARTIST, untaggedTrack.artist);
+                                                .appendQueryParameter(MUSICBRAINZ_PARAM_FILENAME, untaggedTrack.file.getName());
+
+                                        if (untaggedTrack.title != null) {
+                                            uriBuilder.appendQueryParameter(MUSICBRAINZ_PARAM_TITLE, untaggedTrack.title);
+                                        }
+
+                                        if (untaggedTrack.album != null) {
+                                            uriBuilder.appendQueryParameter(MUSICBRAINZ_PARAM_RELEASE, untaggedTrack.album);
+                                        }
+
+                                        if (untaggedTrack.artist != null) {
+                                            uriBuilder.appendQueryParameter(MUSICBRAINZ_PARAM_ARTIST, untaggedTrack.artist);
+                                        }
+
                                         launchPage(uriBuilder.build());
                                         break;
 
@@ -188,15 +221,21 @@ public class MainActivity extends AppCompatActivity implements ViewPager.OnPageC
                                         adapter.setMarked(untaggedTrack, true);
                                         mTaggerFragment.setOnTrackClickListener(new TaggerListAdapter.OnTrackTagClickListener() {
                                             @Override
-                                            public void onTrackTagClick(final TaggerListAdapter taggerListAdapter, TaggerListAdapter.ReleaseTag releaseTag, final TaggerListAdapter.TrackTag track) {
+                                            public void onTrackTagClick(final TaggerListAdapter taggerListAdapter, final TaggerListAdapter.ReleaseTag releaseTag, final TaggerListAdapter.TrackTag track) {
+                                                adapter.setMarked(untaggedTrack, false);
                                                 new AlertDialog.Builder(MainActivity.this)
                                                         .setMessage("Tag?")
                                                         .setNegativeButton(android.R.string.cancel, null)
                                                         .setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
                                                             @Override
                                                             public void onClick(DialogInterface dialog, int which) {
-                                                                taggerListAdapter.setUntaggedTrack(track, untaggedTrack);
-                                                                adapter.removeUntaggedTrack(untaggedTrack);
+                                                                executeProgressTask(new Runnable() {
+                                                                    @Override
+                                                                    public void run() {
+                                                                        taggerListAdapter.setUntaggedTrack(releaseTag, track, untaggedTrack);
+                                                                        adapter.removeUntaggedTrack(untaggedTrack);
+                                                                    }
+                                                                });
                                                             }
                                                         }).show();
                                             }
@@ -261,17 +300,69 @@ public class MainActivity extends AppCompatActivity implements ViewPager.OnPageC
 
     }
 
-    public void showAddFilesScreen() {
+    private void showAddFilesScreen() {
         Intent intent = new Intent(this, FilePickerActivity.class);
         intent.putExtra(FilePickerActivity.EXTRA_DIR, Environment.getExternalStorageDirectory());
         startActivityForResult(intent, CHOOSE_FILE_REQUEST_CODE);
     }
 
+    private void onProgressTaskStarted() {
+        final int tasks = mProgressTaskCount.getAndIncrement();
+        Log.d(TAG, "Progress task started: " + (tasks + 1) + " active");
+        if (tasks == 0) {
+            mProgressBar.post(new Runnable() {
+                @Override
+                public void run() {
+                    if (mProgressTaskCount.get() == 1) {
+                        Log.d(TAG, "Showing progressbar");
+                        mProgressBar.animate().alpha(1);
+                    } else {
+                        Log.d(TAG, "Progressbar already visible");
+                    }
+                }
+            });
+        }
+    }
+
+    private void onProgressTaskEnded() {
+        final int tasks = mProgressTaskCount.getAndDecrement();
+        Log.d(TAG, "Progress task ended: " + (tasks - 1) + " left");
+        if (tasks == 0) {
+            mProgressBar.post(new Runnable() {
+                @Override
+                public void run() {
+                    if (mProgressTaskCount.get() == 0) {
+                        Log.d(TAG, "Hiding progressbar");
+                        mProgressBar.animate().alpha(0);
+                    } else {
+                        Log.d(TAG, "Not hiding progrssbar yet");
+                    }
+                }
+            });
+        }
+    }
+
+    private void executeProgressTask(final Runnable runnable) {
+        onProgressTaskStarted();
+        mExecutor.execute(new Runnable() {
+            @Override
+            public void run() {
+                runnable.run();
+                onProgressTaskEnded();
+            }
+        });
+    }
+
     @Override
-    public void onActivityResult(int requestCode, int resultCode, Intent data) {
+    public void onActivityResult(int requestCode, int resultCode, final Intent data) {
         if (requestCode == CHOOSE_FILE_REQUEST_CODE && resultCode == Activity.RESULT_OK) {
-            Set<File> chosenFiles = (Set<File>) data.getSerializableExtra(FilePickerActivity.EXTRA_FILES);
-            mUntaggedListFragment.addFiles(chosenFiles);
+            executeProgressTask(new Runnable() {
+                @Override
+                public void run() {
+                    Set<File> chosenFiles = (Set<File>) data.getSerializableExtra(FilePickerActivity.EXTRA_FILES);
+                    mUntaggedListFragment.addFiles(chosenFiles);
+                }
+            });
 
             if (mCustomTabsClient != null) {
                 mCustomTabsClient.warmup(0);

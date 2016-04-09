@@ -19,8 +19,6 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 import butterknife.Bind;
 import butterknife.ButterKnife;
@@ -32,7 +30,6 @@ import info.debatty.java.stringsimilarity.Levenshtein;
 public class TaggerListAdapter extends RecyclerView.Adapter<TaggerListAdapter.ParentViewHolder> {
     private static final String TAG = "UntaggedListAdapter";
     private final OrderedHashSet<ReleaseTag> mReleaseTags = new OrderedHashSet<>();
-    private final ExecutorService mExecutor = Executors.newSingleThreadExecutor();
     public final RecyclerViewAdapterNotifier notifier = new RecyclerViewAdapterNotifier(this);
     private OnTrackTagClickListener mOnTrackTagClickListener;
     private OnTrackTagLongClickListener mOnTrackTagLongClickListener;
@@ -104,7 +101,7 @@ public class TaggerListAdapter extends RecyclerView.Adapter<TaggerListAdapter.Pa
         mOnReleaseTagLongClickListener = onReleaseTagLongClickListener;
     }
 
-    public void addRelease(Release release) {
+    public synchronized void addRelease(Release release) {
         if (release == null) {
             return;
         }
@@ -119,7 +116,7 @@ public class TaggerListAdapter extends RecyclerView.Adapter<TaggerListAdapter.Pa
         notifier.notifyItemInserted();
     }
 
-    public void setUntaggedRelease(ReleaseTag releaseTag, UntaggedRelease untaggedRelease) {
+    public synchronized void setUntaggedRelease(ReleaseTag releaseTag, UntaggedRelease untaggedRelease) {
         releaseTag.untagged = untaggedRelease;
 
         final ChildAdapter childAdapter = releaseTag.childAdapter;
@@ -162,8 +159,9 @@ public class TaggerListAdapter extends RecyclerView.Adapter<TaggerListAdapter.Pa
         notifyItemChanged(mReleaseTags.indexOf(releaseTag));
     }
 
-    public void setUntaggedTrack(TrackTag trackTag, UntaggedTrack untaggedTrack) {
+    public synchronized void setUntaggedTrack(ReleaseTag releaseTag, TrackTag trackTag, UntaggedTrack untaggedTrack) {
         trackTag.untaggedTrack = untaggedTrack;
+        releaseTag.adapterNotifier.notifyItemChanged(releaseTag.childAdapter.mTrackTags.indexOf(trackTag));
     }
 
     public interface OnTrackTagClickListener {
@@ -329,13 +327,14 @@ public class TaggerListAdapter extends RecyclerView.Adapter<TaggerListAdapter.Pa
     public class ReleaseTag {
         public UntaggedRelease untagged;
         public Release release;
-        public ChildAdapter childAdapter;
         public boolean tagged = false;
-        public RecyclerViewAdapterNotifier adapterNotifier = new RecyclerViewAdapterNotifier(childAdapter);
+        public final ChildAdapter childAdapter;
+        public final RecyclerViewAdapterNotifier adapterNotifier;
 
         public ReleaseTag(Release release) {
             this.release = release;
             childAdapter = new ChildAdapter(this);
+            adapterNotifier = new RecyclerViewAdapterNotifier(childAdapter);
         }
 
         @Override
