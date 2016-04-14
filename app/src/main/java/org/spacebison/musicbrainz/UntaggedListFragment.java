@@ -22,7 +22,6 @@ public class UntaggedListFragment extends Fragment {
     private static final String TAG = "UntaggedListFragment";
 
     private final UntaggedListAdapter mAdapter = new UntaggedListAdapter();
-    private final RecyclerViewAdapterNotifier mAdapterNotifier = new RecyclerViewAdapterNotifier(mAdapter);
 
     @Bind(R.id.recycler_view)
     RecyclerView mRecyclerView;
@@ -37,6 +36,10 @@ public class UntaggedListFragment extends Fragment {
         mRecyclerView.setAdapter(mAdapter);
 
         return view;
+    }
+
+    public UntaggedListAdapter getAdapter() {
+        return mAdapter;
     }
 
     public void setOnItemClickListener(UntaggedListAdapter.OnItemClickListener onItemClickListener) {

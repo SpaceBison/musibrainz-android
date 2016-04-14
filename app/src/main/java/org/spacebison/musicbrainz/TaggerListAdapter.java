@@ -155,8 +155,8 @@ public class TaggerListAdapter extends RecyclerView.Adapter<TaggerListAdapter.Pa
             }
         }
 
-        childAdapter.notifyDataSetChanged();
-        notifyItemChanged(mReleaseTags.indexOf(releaseTag));
+        childAdapter.notifier.notifyDataSetChanged();
+        notifier.notifyItemChanged(mReleaseTags.indexOf(releaseTag));
     }
 
     public synchronized void setUntaggedTrack(ReleaseTag releaseTag, TrackTag trackTag, UntaggedTrack untaggedTrack) {

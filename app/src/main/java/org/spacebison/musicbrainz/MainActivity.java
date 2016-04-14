@@ -14,11 +14,16 @@ import android.support.customtabs.CustomTabsSession;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v4.content.ContextCompat;
 import android.support.v4.view.ViewPager;
+import android.support.v7.app.ActionBar;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
+import android.support.v7.view.ActionMode;
 import android.support.v7.widget.Toolbar;
 import android.text.TextUtils;
 import android.util.Log;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.ProgressBar;
 
@@ -34,11 +39,11 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import butterknife.Bind;
 import butterknife.ButterKnife;
 import fi.iki.elonen.NanoHTTPD;
+import me.zhanghai.android.materialprogressbar.IndeterminateHorizontalProgressDrawable;
 
 public class MainActivity extends AppCompatActivity implements ViewPager.OnPageChangeListener, ServiceConnectionCallback {
     private static final String TAG = "MainActivity";
@@ -53,10 +58,12 @@ public class MainActivity extends AppCompatActivity implements ViewPager.OnPageC
     public static final String MUSICBRAINZ_PARAM_FILENAME = "tag-lookup.filename";
 
     private final Executor mExecutor = Executors.newCachedThreadPool();
-    private final AtomicInteger mProgressTaskCount = new AtomicInteger(0);
+    private final ActionMode.Callback mReleaseActionModeCallback = new ReleaseActionMode();
+    private final ActionMode.Callback mTrackActionModeCallback = new TrackActionModeCallback();
 
     private UntaggedListFragment mUntaggedListFragment;
     private TaggerFragment mTaggerFragment;
+    private ActionMode mActionMode = null;
     private int mPort = 8000;
     private int mPrimaryColor;
 
@@ -99,7 +106,39 @@ public class MainActivity extends AppCompatActivity implements ViewPager.OnPageC
         mViewPager.addOnPageChangeListener(this);
         mViewPager.setAdapter(pagerAdapter);
 
+        mProgressBar.setIndeterminateDrawable(new IndeterminateHorizontalProgressDrawable(this));
         mProgressViewController = new ProgressViewController(mProgressBar);
+
+        mUntaggedListFragment.setOnSectionLongClickListener(new UntaggedListAdapter.OnSectionLongClickListener() {
+            @Override
+            public void onSectionLongClick(final UntaggedListAdapter adapter, final UntaggedListAdapter.UntaggedRelease untaggedRelease) {
+                if (mActionMode == null) {
+                    final ActionBar supportActionBar = getSupportActionBar();
+                    if (supportActionBar != null) {
+                        mActionMode = startSupportActionMode(mReleaseActionModeCallback);
+                        if (mActionMode != null) {
+                            mActionMode.setTag(untaggedRelease);
+                        } else {
+                            Log.w(TAG, "Action mode not started");
+                        }
+                    }
+                }
+            }
+        });
+
+        mUntaggedListFragment.setOnItemLongClickListener(new UntaggedListAdapter.OnItemLongClickListener() {
+            @Override
+            public void onItemLongClick(final UntaggedListAdapter adapter, final UntaggedListAdapter.UntaggedTrack untaggedTrack) {
+                if (mActionMode == null) {
+                    mActionMode = startSupportActionMode(mReleaseActionModeCallback);
+                    if (mActionMode != null) {
+                        mActionMode.setTag(untaggedTrack);
+                    } else {
+                        Log.w(TAG, "Action mode not started");
+                    }
+                }
+            }
+        });
 
         onPageSelected(0);
 
@@ -126,132 +165,6 @@ public class MainActivity extends AppCompatActivity implements ViewPager.OnPageC
 
         mPackageNameToBind = CustomTabsHelper.getPackageNameToUse(this);
         bindCustomTabsService();
-    }
-
-    @Override
-    protected void onResumeFragments() {
-        super.onResumeFragments();
-        mUntaggedListFragment.setOnSectionLongClickListener(new UntaggedListAdapter.OnSectionLongClickListener() {
-            @Override
-            public void onSectionLongClick(final UntaggedListAdapter adapter, final UntaggedListAdapter.UntaggedRelease untaggedRelease) {
-                CharSequence[] items = new CharSequence[]{"Search in browser", "Tag"};
-                new AlertDialog.Builder(MainActivity.this)
-                        .setTitle(untaggedRelease.getName())
-                        .setItems(items, new DialogInterface.OnClickListener() {
-                            @Override
-                            public void onClick(DialogInterface dialog, int which) {
-                                switch (which) {
-                                    case 0:
-                                        Uri.Builder uriBuilder = new Uri.Builder()
-                                                .scheme(MUSICBRAINZ_QUERY_SCHEME)
-                                                .authority(MUSICBRAINZ_DOMAIN)
-                                                .appendPath(MUSICBRAINZ_TAG_LOOKUP)
-                                                .appendQueryParameter(MUSICBRAINZ_PARAM_PORT, Integer.toString(mPort));
-
-                                        if (untaggedRelease.album != null) {
-                                            uriBuilder.appendQueryParameter(MUSICBRAINZ_PARAM_RELEASE, untaggedRelease.album);
-                                        }
-
-                                        if (untaggedRelease.artist != null) {
-                                            uriBuilder.appendQueryParameter(MUSICBRAINZ_PARAM_ARTIST, untaggedRelease.artist);
-                                        }
-
-                                        launchPage(uriBuilder.build());
-                                        break;
-
-                                    case 1:
-                                        adapter.setMarked(untaggedRelease, true);
-                                        mTaggerFragment.setOnReleaseClickListener(new TaggerListAdapter.OnReleaseTagClickListener() {
-                                            @Override
-                                            public void onReleaseTagClick(final TaggerListAdapter taggerListAdapter, final TaggerListAdapter.ReleaseTag release) {
-                                                adapter.setMarked(untaggedRelease, false);
-                                                new AlertDialog.Builder(MainActivity.this)
-                                                        .setTitle(release.release.getTitle())
-                                                        .setMessage("Tag?")
-                                                        .setNegativeButton(android.R.string.cancel, null)
-                                                        .setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
-                                                            @Override
-                                                            public void onClick(DialogInterface dialog, int which) {
-                                                                executeIndeterminateProgressTask(new Runnable() {
-                                                                    @Override
-                                                                    public void run() {
-                                                                        taggerListAdapter.setUntaggedRelease(release, untaggedRelease);
-                                                                        adapter.removeUntaggedRelease(untaggedRelease);
-                                                                    }
-                                                                });
-                                                            }
-                                                        }).show();
-                                            }
-                                        });
-                                        mViewPager.setCurrentItem(1, true);
-                                }
-                            }
-                        }).show();
-            }
-        });
-        mUntaggedListFragment.setOnItemLongClickListener(new UntaggedListAdapter.OnItemLongClickListener() {
-            @Override
-            public void onItemLongClick(final UntaggedListAdapter adapter, final UntaggedListAdapter.UntaggedTrack untaggedTrack) {
-                CharSequence[] items = new CharSequence[]{"Search in browser", "Tag"};
-                new AlertDialog.Builder(MainActivity.this)
-                        .setTitle(untaggedTrack.title)
-                        .setItems(items, new DialogInterface.OnClickListener() {
-                            @Override
-                            public void onClick(DialogInterface dialog, int which) {
-                                switch (which) {
-                                    case 0:
-                                        Uri.Builder uriBuilder = new Uri.Builder()
-                                                .scheme(MUSICBRAINZ_QUERY_SCHEME)
-                                                .authority(MUSICBRAINZ_DOMAIN)
-                                                .appendPath(MUSICBRAINZ_TAG_LOOKUP)
-                                                .appendQueryParameter(MUSICBRAINZ_PARAM_PORT, Integer.toString(mPort))
-                                                .appendQueryParameter(MUSICBRAINZ_PARAM_FILENAME, untaggedTrack.file.getName());
-
-                                        if (untaggedTrack.title != null) {
-                                            uriBuilder.appendQueryParameter(MUSICBRAINZ_PARAM_TITLE, untaggedTrack.title);
-                                        }
-
-                                        if (untaggedTrack.album != null) {
-                                            uriBuilder.appendQueryParameter(MUSICBRAINZ_PARAM_RELEASE, untaggedTrack.album);
-                                        }
-
-                                        if (untaggedTrack.artist != null) {
-                                            uriBuilder.appendQueryParameter(MUSICBRAINZ_PARAM_ARTIST, untaggedTrack.artist);
-                                        }
-
-                                        launchPage(uriBuilder.build());
-                                        break;
-
-                                    case 1:
-                                        adapter.setMarked(untaggedTrack, true);
-                                        mTaggerFragment.setOnTrackClickListener(new TaggerListAdapter.OnTrackTagClickListener() {
-                                            @Override
-                                            public void onTrackTagClick(final TaggerListAdapter taggerListAdapter, final TaggerListAdapter.ReleaseTag releaseTag, final TaggerListAdapter.TrackTag track) {
-                                                adapter.setMarked(untaggedTrack, false);
-                                                new AlertDialog.Builder(MainActivity.this)
-                                                        .setMessage("Tag?")
-                                                        .setNegativeButton(android.R.string.cancel, null)
-                                                        .setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
-                                                            @Override
-                                                            public void onClick(DialogInterface dialog, int which) {
-                                                                executeIndeterminateProgressTask(new Runnable() {
-                                                                    @Override
-                                                                    public void run() {
-                                                                        taggerListAdapter.setUntaggedTrack(releaseTag, track, untaggedTrack);
-                                                                        adapter.removeUntaggedTrack(untaggedTrack);
-                                                                    }
-                                                                });
-                                                            }
-                                                        }).show();
-                                            }
-                                        });
-
-                                        mViewPager.setCurrentItem(1, true);
-                                }
-                            }
-                        }).show();
-            }
-        });
     }
 
     @Override
@@ -292,7 +205,7 @@ public class MainActivity extends AppCompatActivity implements ViewPager.OnPageC
                                 .setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
                                     @Override
                                     public void onClick(DialogInterface dialog, int which) {
-                                        mTaggerFragment.saveTags();
+                                        mTaggerFragment.saveTags(new TaskProgressListener(mProgressViewController, Long.toHexString(System.currentTimeMillis())));
                                     }
                                 }).show();
                     }
@@ -419,6 +332,167 @@ public class MainActivity extends AppCompatActivity implements ViewPager.OnPageC
         @Override
         public void onNavigationEvent(int navigationEvent, Bundle extras) {
             Log.w(TAG, "onNavigationEvent: Code = " + navigationEvent);
+        }
+    }
+
+    private class ReleaseActionMode implements ActionMode.Callback {
+
+        @Override
+        public boolean onCreateActionMode(ActionMode actionMode, Menu menu) {
+            MenuInflater inflater = actionMode.getMenuInflater();
+            inflater.inflate(R.menu.action_mode_untagged, menu);
+            return true;
+        }
+
+        @Override
+        public boolean onPrepareActionMode(ActionMode actionMode, Menu menu) {
+            return false;
+        }
+
+        @Override
+        public boolean onActionItemClicked(ActionMode actionMode, MenuItem menuItem) {
+            final UntaggedListAdapter.UntaggedRelease untaggedRelease = (UntaggedListAdapter.UntaggedRelease) actionMode.getTag();
+            final UntaggedListAdapter adapter = mUntaggedListFragment.getAdapter();
+
+            switch (menuItem.getItemId()) {
+                case R.id.action_lookup_browser:
+                    Uri.Builder uriBuilder = new Uri.Builder()
+                            .scheme(MUSICBRAINZ_QUERY_SCHEME)
+                            .authority(MUSICBRAINZ_DOMAIN)
+                            .appendPath(MUSICBRAINZ_TAG_LOOKUP)
+                            .appendQueryParameter(MUSICBRAINZ_PARAM_PORT, Integer.toString(mPort));
+
+                    if (untaggedRelease.album != null) {
+                        uriBuilder.appendQueryParameter(MUSICBRAINZ_PARAM_RELEASE, untaggedRelease.album);
+                    }
+
+                    if (untaggedRelease.artist != null) {
+                        uriBuilder.appendQueryParameter(MUSICBRAINZ_PARAM_ARTIST, untaggedRelease.artist);
+                    }
+
+                    launchPage(uriBuilder.build());
+                    actionMode.finish();
+                    return true;
+
+                case R.id.action_tag:
+                    adapter.setMarked(untaggedRelease, true);
+                    mTaggerFragment.setOnReleaseClickListener(new TaggerListAdapter.OnReleaseTagClickListener() {
+                        @Override
+                        public void onReleaseTagClick(final TaggerListAdapter taggerListAdapter, final TaggerListAdapter.ReleaseTag release) {
+                            adapter.setMarked(untaggedRelease, false);
+                            new AlertDialog.Builder(MainActivity.this)
+                                    .setTitle(release.release.getTitle())
+                                    .setMessage("Tag?")
+                                    .setNegativeButton(android.R.string.cancel, null)
+                                    .setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
+                                        @Override
+                                        public void onClick(DialogInterface dialog, int which) {
+                                            executeIndeterminateProgressTask(new Runnable() {
+                                                @Override
+                                                public void run() {
+                                                    taggerListAdapter.setUntaggedRelease(release, untaggedRelease);
+                                                    adapter.removeUntaggedRelease(untaggedRelease);
+                                                }
+                                            });
+                                        }
+                                    }).show();
+                        }
+                    });
+                    mViewPager.setCurrentItem(1, true);
+                    actionMode.finish();
+                    return true;
+
+                default:
+                    return false;
+            }
+        }
+
+        @Override
+        public void onDestroyActionMode(ActionMode actionMode) {
+            mActionMode = null;
+        }
+    }
+
+    private class TrackActionModeCallback implements ActionMode.Callback {
+
+        @Override
+        public boolean onCreateActionMode(ActionMode actionMode, Menu menu) {
+            MenuInflater inflater = actionMode.getMenuInflater();
+            inflater.inflate(R.menu.action_mode_untagged, menu);
+            return true;
+        }
+
+        @Override
+        public boolean onPrepareActionMode(ActionMode actionMode, Menu menu) {
+            return false;
+        }
+
+        @Override
+        public boolean onActionItemClicked(ActionMode actionMode, MenuItem menuItem) {
+            final UntaggedListAdapter.UntaggedTrack untaggedTrack = (UntaggedListAdapter.UntaggedTrack) actionMode.getTag();
+            final UntaggedListAdapter adapter = mUntaggedListFragment.getAdapter();
+
+            switch (menuItem.getItemId()) {
+                case R.id.action_lookup_browser:
+                    Uri.Builder uriBuilder = new Uri.Builder()
+                            .scheme(MUSICBRAINZ_QUERY_SCHEME)
+                            .authority(MUSICBRAINZ_DOMAIN)
+                            .appendPath(MUSICBRAINZ_TAG_LOOKUP)
+                            .appendQueryParameter(MUSICBRAINZ_PARAM_PORT, Integer.toString(mPort))
+                            .appendQueryParameter(MUSICBRAINZ_PARAM_FILENAME, untaggedTrack.file.getName());
+
+                    if (untaggedTrack.title != null) {
+                        uriBuilder.appendQueryParameter(MUSICBRAINZ_PARAM_TITLE, untaggedTrack.title);
+                    }
+
+                    if (untaggedTrack.album != null) {
+                        uriBuilder.appendQueryParameter(MUSICBRAINZ_PARAM_RELEASE, untaggedTrack.album);
+                    }
+
+                    if (untaggedTrack.artist != null) {
+                        uriBuilder.appendQueryParameter(MUSICBRAINZ_PARAM_ARTIST, untaggedTrack.artist);
+                    }
+
+                    launchPage(uriBuilder.build());
+                    actionMode.finish();
+                    return true;
+
+                case R.id.action_tag:
+                    adapter.setMarked(untaggedTrack, true);
+                    mTaggerFragment.setOnTrackClickListener(new TaggerListAdapter.OnTrackTagClickListener() {
+                        @Override
+                        public void onTrackTagClick(final TaggerListAdapter taggerListAdapter, final TaggerListAdapter.ReleaseTag releaseTag, final TaggerListAdapter.TrackTag track) {
+                            adapter.setMarked(untaggedTrack, false);
+                            new AlertDialog.Builder(MainActivity.this)
+                                    .setMessage("Tag?")
+                                    .setNegativeButton(android.R.string.cancel, null)
+                                    .setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
+                                        @Override
+                                        public void onClick(DialogInterface dialog, int which) {
+                                            executeIndeterminateProgressTask(new Runnable() {
+                                                @Override
+                                                public void run() {
+                                                    taggerListAdapter.setUntaggedTrack(releaseTag, track, untaggedTrack);
+                                                    adapter.removeUntaggedTrack(untaggedTrack);
+                                                }
+                                            });
+                                        }
+                                    }).show();
+                        }
+                    });
+
+                    mViewPager.setCurrentItem(1, true);
+                    actionMode.finish();
+                    return true;
+
+                default:
+                    return false;
+            }
+        }
+
+        @Override
+        public void onDestroyActionMode(ActionMode actionMode) {
+            mActionMode = null;
         }
     }
 }

@@ -73,11 +73,26 @@ public class TaggerFragment extends Fragment {
         });
     }
 
-    public void saveTags() {
+    public TaggerListAdapter getAdapter() {
+        return mAdapter;
+    }
+
+    public void saveTags(final ProgressListener listener) {
         new AsyncTask<Void, Void, Void>() {
             @Override
             protected Void doInBackground(Void... params) {
                 List<TaggerListAdapter.ReleaseTag> releaseTags = mAdapter.getReleaseTags();
+                int maxProgress = 0;
+                int progress = 0;
+
+                if (listener != null) {
+                    listener.onStarted();
+
+                    for (final TaggerListAdapter.ReleaseTag rt : releaseTags) {
+                        maxProgress += rt.childAdapter.getItemCount();
+                    }
+                }
+
                 for (final TaggerListAdapter.ReleaseTag rt : releaseTags) {
                     Release release = rt.release;
                     String albumTitle = release.getTitle();
@@ -141,12 +156,21 @@ public class TaggerFragment extends Fragment {
                                 }
                             });
 
+                            if (listener != null) {
+                                listener.onProgressChanged(maxProgress, ++progress);
+                            }
+
                             Log.d(TAG, "Saved tags for " + audioFile.getFile().getName());
                         } catch (CannotReadException | IOException | ReadOnlyFileException | InvalidAudioFrameException | TagException | CannotWriteException e) {
                             e.printStackTrace();
                         }
                     }
                 }
+
+                if (listener != null) {
+                    listener.onFinished();
+                }
+
                 return null;
             }
         }.execute();
