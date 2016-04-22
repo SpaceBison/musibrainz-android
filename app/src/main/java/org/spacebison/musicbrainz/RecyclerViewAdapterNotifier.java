@@ -130,7 +130,7 @@ public class RecyclerViewAdapterNotifier {
         });
     }
 
-    public void notfiyItemRemoved() {
+    public void notifyItemRemoved() {
         notifyItemRemoved(mAdapter.getItemCount());
     }
 

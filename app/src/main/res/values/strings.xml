@@ -1,4 +1,8 @@
 <resources>
     <string name="app_name">Musicbrainz</string>
     <string name="title_activity_file_chooser">FileChooserActivity</string>
+    <string name="could_not_get_tags">Could not get tags. Please try again</string>
+    <string name="tag">Tag</string>
+    <string name="lookup_in_browser">Lookup in browser</string>
+    <string name="remove">Remove</string>
 </resources>

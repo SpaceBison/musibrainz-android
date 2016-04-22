@@ -29,8 +29,8 @@ import info.debatty.java.stringsimilarity.Levenshtein;
  */
 public class TaggerListAdapter extends RecyclerView.Adapter<TaggerListAdapter.ParentViewHolder> {
     private static final String TAG = "UntaggedListAdapter";
-    private final OrderedHashSet<ReleaseTag> mReleaseTags = new OrderedHashSet<>();
     public final RecyclerViewAdapterNotifier notifier = new RecyclerViewAdapterNotifier(this);
+    private final OrderedHashSet<ReleaseTag> mReleaseTags = new OrderedHashSet<>();
     private OnTrackTagClickListener mOnTrackTagClickListener;
     private OnTrackTagLongClickListener mOnTrackTagLongClickListener;
     private OnReleaseTagClickListener mOnReleaseTagClickListener;
@@ -76,6 +76,8 @@ public class TaggerListAdapter extends RecyclerView.Adapter<TaggerListAdapter.Pa
         });
     }
 
+
+
     @Override
     public int getItemCount() {
         return mReleaseTags.size();
@@ -114,6 +116,20 @@ public class TaggerListAdapter extends RecyclerView.Adapter<TaggerListAdapter.Pa
 
         mReleaseTags.add(releaseTag);
         notifier.notifyItemInserted();
+    }
+
+    public synchronized void removeRelease(Release release) {
+        if (release == null) {
+            return;
+        }
+
+        ReleaseTag releaseTag = new ReleaseTag(release);
+        int index = mReleaseTags.indexOf(releaseTag);
+
+        if (index >= 0) {
+            mReleaseTags.remove(index);
+            notifier.notifyItemRemoved(index);
+        }
     }
 
     public synchronized void setUntaggedRelease(ReleaseTag releaseTag, UntaggedRelease untaggedRelease) {
@@ -180,6 +196,31 @@ public class TaggerListAdapter extends RecyclerView.Adapter<TaggerListAdapter.Pa
         void onReleaseTagLongClick(TaggerListAdapter adapter, ReleaseTag release);
     }
 
+    public static class TrackTag {
+        public Track track;
+        public UntaggedTrack untaggedTrack;
+        public boolean tagged = false;
+
+        public TrackTag(Track track) {
+            this.track = track;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+
+            TrackTag trackTag = (TrackTag) o;
+
+            return !(track != null ? !track.equals(trackTag.track) : trackTag.track != null);
+        }
+
+        @Override
+        public int hashCode() {
+            return track != null ? track.hashCode() : 0;
+        }
+    }
+
     public class ParentViewHolder extends RecyclerView.ViewHolder {
         @Bind(R.id.root)
         View root;
@@ -221,8 +262,8 @@ public class TaggerListAdapter extends RecyclerView.Adapter<TaggerListAdapter.Pa
     }
 
     public class ChildAdapter extends RecyclerView.Adapter<ChildAdapter.ChildViewHolder> {
-        private final ReleaseTag mReleaseTag;
         public final RecyclerViewAdapterNotifier notifier = new RecyclerViewAdapterNotifier(this);
+        private final ReleaseTag mReleaseTag;
         private List<TrackTag> mTrackTags;
 
         public ChildAdapter(ReleaseTag releaseTag) {
@@ -325,11 +366,11 @@ public class TaggerListAdapter extends RecyclerView.Adapter<TaggerListAdapter.Pa
     }
 
     public class ReleaseTag {
+        public transient final ChildAdapter childAdapter;
+        public transient final RecyclerViewAdapterNotifier adapterNotifier;
         public UntaggedRelease untagged;
         public Release release;
-        public boolean tagged = false;
-        public final ChildAdapter childAdapter;
-        public final RecyclerViewAdapterNotifier adapterNotifier;
+
 
         public ReleaseTag(Release release) {
             this.release = release;
@@ -351,31 +392,6 @@ public class TaggerListAdapter extends RecyclerView.Adapter<TaggerListAdapter.Pa
         @Override
         public int hashCode() {
             return release != null ? release.hashCode() : 0;
-        }
-    }
-
-    public static class TrackTag {
-        public Track track;
-        public UntaggedTrack untaggedTrack;
-        public boolean tagged = false;
-
-        public TrackTag(Track track) {
-            this.track = track;
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-
-            TrackTag trackTag = (TrackTag) o;
-
-            return !(track != null ? !track.equals(trackTag.track) : trackTag.track != null);
-        }
-
-        @Override
-        public int hashCode() {
-            return track != null ? track.hashCode() : 0;
         }
     }
 }

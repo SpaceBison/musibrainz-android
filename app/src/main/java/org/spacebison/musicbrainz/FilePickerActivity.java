@@ -40,6 +40,8 @@ public class FilePickerActivity extends AppCompatActivity implements FilePickerA
         ButterKnife.bind(this);
 
         setSupportActionBar(mToolbar);
+        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+        getSupportActionBar().setHomeAsUpIndicator(R.drawable.ic_close_white_24dp);
 
         final File dir = (File) getIntent().getSerializableExtra(EXTRA_DIR);
         mAdapter = new FilePickerAdapter(dir);
@@ -60,6 +62,7 @@ public class FilePickerActivity extends AppCompatActivity implements FilePickerA
         }
 
         mAppBar.setExpanded(true);
+        mAppBar.postInvalidate();
     }
 
     @Override
@@ -92,7 +95,7 @@ public class FilePickerActivity extends AppCompatActivity implements FilePickerA
                 finish();
                 return true;
 
-            case R.id.action_cancel:
+            case android.R.id.home:
                 setResult(RESULT_CANCELED);
                 finish();
                 return true;

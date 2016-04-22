@@ -159,5 +159,5 @@ jsonSchema2Pojo {
     initializeCollections = true
 
     // **EXPERIMENTAL** Whether to make the generated types Parcelable for Android
-    parcelable = false
+    parcelable = true
 }

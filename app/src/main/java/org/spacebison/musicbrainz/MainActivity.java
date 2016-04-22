@@ -1,11 +1,18 @@
 package org.spacebison.musicbrainz;
 
 import android.app.Activity;
+import android.content.ComponentName;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
+import android.os.Handler;
+import android.os.IBinder;
+import android.os.Looper;
+import android.os.Message;
+import android.os.Messenger;
+import android.os.RemoteException;
 import android.support.customtabs.CustomTabsCallback;
 import android.support.customtabs.CustomTabsClient;
 import android.support.customtabs.CustomTabsIntent;
@@ -27,27 +34,26 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.ProgressBar;
 
+import com.crashlytics.android.Crashlytics;
+
 import org.chromium.customtabsclient.shared.CustomTabsHelper;
 import org.chromium.customtabsclient.shared.ServiceConnection;
 import org.chromium.customtabsclient.shared.ServiceConnectionCallback;
+import org.spacebison.musicbrainz.api.Release;
 import org.spacebison.progressviewcontroller.ProgressViewController;
 
 import java.io.File;
-import java.io.IOException;
-import java.net.ServerSocket;
-import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingQueue;
 
 import butterknife.Bind;
 import butterknife.ButterKnife;
-import fi.iki.elonen.NanoHTTPD;
 import me.zhanghai.android.materialprogressbar.IndeterminateHorizontalProgressDrawable;
 
-public class MainActivity extends AppCompatActivity implements ViewPager.OnPageChangeListener, ServiceConnectionCallback {
-    private static final String TAG = "MainActivity";
-    private static final int CHOOSE_FILE_REQUEST_CODE = 1;
+public class MainActivity extends AppCompatActivity implements ViewPager.OnPageChangeListener, ServiceConnectionCallback, android.content.ServiceConnection, Handler.Callback {
     public static final String MUSICBRAINZ_QUERY_SCHEME = "http";
     public static final String MUSICBRAINZ_DOMAIN = "musicbrainz.org";
     public static final String MUSICBRAINZ_TAG_LOOKUP = "taglookup";
@@ -56,23 +62,13 @@ public class MainActivity extends AppCompatActivity implements ViewPager.OnPageC
     public static final String MUSICBRAINZ_PARAM_ARTIST = "tag-lookup.artist";
     public static final String MUSICBRAINZ_PARAM_RELEASE = "tag-lookup.release";
     public static final String MUSICBRAINZ_PARAM_FILENAME = "tag-lookup.filename";
-
+    public static final String EXTRA_RELEASE = "org.spacebison.musicbrainz.EXTRA_RELEASE";
+    private static final String TAG = "MainActivity";
+    private static final int CHOOSE_FILE_REQUEST_CODE = 1;
     private final Executor mExecutor = Executors.newCachedThreadPool();
-    private final ActionMode.Callback mReleaseActionModeCallback = new ReleaseActionMode();
+    private final ActionMode.Callback mReleaseActionModeCallback = new ReleaseActionModeCallback();
     private final ActionMode.Callback mTrackActionModeCallback = new TrackActionModeCallback();
-
-    private UntaggedListFragment mUntaggedListFragment;
-    private TaggerFragment mTaggerFragment;
-    private ActionMode mActionMode = null;
-    private int mPort = 8000;
-    private int mPrimaryColor;
-
-    private CustomTabsSession mCustomTabsSession;
-    private CustomTabsClient mCustomTabsClient;
-    private CustomTabsServiceConnection mConnection;
-    private String mPackageNameToBind;
-
-    private WebServer mWebServer = null;
+    private final BlockingQueue<Integer> mServerPortResponseQueue = new LinkedBlockingQueue<>();
 
     @Bind(R.id.toolbar)
     Toolbar mToolbar;
@@ -83,96 +79,18 @@ public class MainActivity extends AppCompatActivity implements ViewPager.OnPageC
     @Bind(R.id.fab)
     FloatingActionButton mFab;
 
+    private Messenger mWebServerMessenger;
+    private Messenger mMessenger = new Messenger(new Handler(Looper.getMainLooper(), this));
+
+    private UntaggedListFragment mUntaggedListFragment;
+    private TaggerFragment mTaggerFragment;
+    private ActionMode mActionMode = null;
+    private int mPrimaryColor;
+    private CustomTabsSession mCustomTabsSession;
+    private CustomTabsClient mCustomTabsClient;
+    private CustomTabsServiceConnection mConnection;
+    private String mPackageNameToBind;
     private ProgressViewController mProgressViewController;
-
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
-        ButterKnife.bind(this);
-
-        setSupportActionBar(mToolbar);
-
-        mPrimaryColor = ContextCompat.getColor(this, R.color.colorPrimary);
-
-        GenericFragmentPagerAdapter pagerAdapter = new GenericFragmentPagerAdapter(getSupportFragmentManager());
-
-        mUntaggedListFragment = new UntaggedListFragment();
-        pagerAdapter.addFragment(mUntaggedListFragment, "Untagged");
-
-        mTaggerFragment = new TaggerFragment();
-        pagerAdapter.addFragment(mTaggerFragment, "Tags");
-
-        mViewPager.addOnPageChangeListener(this);
-        mViewPager.setAdapter(pagerAdapter);
-
-        mProgressBar.setIndeterminateDrawable(new IndeterminateHorizontalProgressDrawable(this));
-        mProgressViewController = new ProgressViewController(mProgressBar);
-
-        mUntaggedListFragment.setOnSectionLongClickListener(new UntaggedListAdapter.OnSectionLongClickListener() {
-            @Override
-            public void onSectionLongClick(final UntaggedListAdapter adapter, final UntaggedListAdapter.UntaggedRelease untaggedRelease) {
-                if (mActionMode == null) {
-                    final ActionBar supportActionBar = getSupportActionBar();
-                    if (supportActionBar != null) {
-                        mActionMode = startSupportActionMode(mReleaseActionModeCallback);
-                        if (mActionMode != null) {
-                            mActionMode.setTag(untaggedRelease);
-                        } else {
-                            Log.w(TAG, "Action mode not started");
-                        }
-                    }
-                }
-            }
-        });
-
-        mUntaggedListFragment.setOnItemLongClickListener(new UntaggedListAdapter.OnItemLongClickListener() {
-            @Override
-            public void onItemLongClick(final UntaggedListAdapter adapter, final UntaggedListAdapter.UntaggedTrack untaggedTrack) {
-                if (mActionMode == null) {
-                    mActionMode = startSupportActionMode(mReleaseActionModeCallback);
-                    if (mActionMode != null) {
-                        mActionMode.setTag(untaggedTrack);
-                    } else {
-                        Log.w(TAG, "Action mode not started");
-                    }
-                }
-            }
-        });
-
-        onPageSelected(0);
-
-        mExecutor.execute(new Runnable() {
-            @Override
-            public void run() {
-                do {
-                    try {
-                        final ServerSocket serverSocket = new ServerSocket(0);
-                        final int localPort = serverSocket.getLocalPort();
-                        Log.d(TAG, "Trying port " + localPort + " for web server");
-                        serverSocket.close();
-                        mWebServer = new WebServer(localPort);
-                        Log.d(TAG, "Starting web server");
-                        mWebServer.start();
-                        Log.d(TAG, "Started on port " + localPort);
-                        mPort = localPort;
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                } while (mWebServer == null);
-            }
-        });
-
-        mPackageNameToBind = CustomTabsHelper.getPackageNameToUse(this);
-        bindCustomTabsService();
-    }
-
-    @Override
-    protected void onDestroy() {
-        mWebServer.stop();
-        unbindCustomTabsService();
-        super.onDestroy();
-    }
 
     @Override
     public void onPageScrolled(int position, float positionOffset, int positionOffsetPixels) {
@@ -218,27 +136,50 @@ public class MainActivity extends AppCompatActivity implements ViewPager.OnPageC
 
     }
 
-    private void showAddFilesScreen() {
-        Intent intent = new Intent(this, FilePickerActivity.class);
-        intent.putExtra(FilePickerActivity.EXTRA_DIR, Environment.getExternalStorageDirectory());
-        startActivityForResult(intent, CHOOSE_FILE_REQUEST_CODE);
-    }
-
-    private void executeIndeterminateProgressTask(final Runnable runnable) {
-        mProgressViewController.notifyIndeterminateTaskStarted();
-        //mProgressBar.setVisibility(View.VISIBLE);
-        mExecutor.execute(new Runnable() {
-            @Override
-            public void run() {
-                runnable.run();
-                //mProgressBar.setVisibility(View.INVISIBLE);
-                mProgressViewController.notifyIndeterminateTaskFinished();
-            }
-        });
+    @Override
+    public void onServiceConnected(CustomTabsClient client) {
+        mCustomTabsClient = client;
     }
 
     @Override
-    public void onActivityResult(int requestCode, int resultCode, final Intent data) {
+    public void onServiceDisconnected() {
+        mCustomTabsClient = null;
+    }
+
+    @Override
+    public void onServiceConnected(ComponentName name, IBinder service) {
+        mWebServerMessenger = new Messenger(service);
+    }
+
+    @Override
+    public void onServiceDisconnected(ComponentName name) {
+        mWebServerMessenger = null;
+    }
+
+    @Override
+    public boolean handleMessage(Message msg) {
+        switch (msg.what) {
+            case WebServerService.RESPONSE_GET_PORT:
+                try {
+                    mServerPortResponseQueue.put(msg.arg1);
+                } catch (InterruptedException e) {
+                    Crashlytics.logException(e);
+                }
+                return true;
+
+            default:
+                return false;
+        }
+    }
+
+    @Override
+    public void onBackPressed() {
+        super.onBackPressed();
+        stopService(new Intent(this, WebServerService.class));
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, final Intent data) {
         Log.d(TAG, "Activity result: " + resultCode + "; request: " + requestCode);
         if (requestCode == CHOOSE_FILE_REQUEST_CODE && resultCode == Activity.RESULT_OK) {
             executeIndeterminateProgressTask(new Runnable() {
@@ -257,6 +198,117 @@ public class MainActivity extends AppCompatActivity implements ViewPager.OnPageC
         }
 
         super.onActivityResult(requestCode, resultCode, data);
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        Log.d(TAG, "New intent: " + intent);
+        super.onNewIntent(intent);
+
+        if (intent != null) {
+            Bundle extras = intent.getExtras();
+            if (extras != null && extras.containsKey(EXTRA_RELEASE)) {
+                mTaggerFragment.getAdapter().addRelease((Release) extras.getParcelable(EXTRA_RELEASE));
+                mViewPager.setCurrentItem(1);
+            }
+        }
+    }
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        Log.d(TAG, "Create");
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
+        ButterKnife.bind(this);
+
+        setSupportActionBar(mToolbar);
+
+        mPrimaryColor = ContextCompat.getColor(this, R.color.colorPrimary);
+
+        GenericFragmentPagerAdapter pagerAdapter = new GenericFragmentPagerAdapter(getSupportFragmentManager());
+
+        mUntaggedListFragment = new UntaggedListFragment();
+        pagerAdapter.addFragment(mUntaggedListFragment, "Untagged");
+
+        mTaggerFragment = new TaggerFragment();
+        pagerAdapter.addFragment(mTaggerFragment, "Tags");
+
+        mViewPager.addOnPageChangeListener(this);
+        mViewPager.setAdapter(pagerAdapter);
+
+        mProgressBar.setIndeterminateDrawable(new IndeterminateHorizontalProgressDrawable(this));
+        mProgressViewController = new ProgressViewController(mProgressBar);
+
+        mUntaggedListFragment.setOnSectionLongClickListener(new UntaggedListAdapter.OnSectionLongClickListener() {
+            @Override
+            public void onSectionLongClick(final UntaggedListAdapter adapter, final UntaggedListAdapter.UntaggedRelease untaggedRelease) {
+                if (mActionMode == null) {
+                    final ActionBar supportActionBar = getSupportActionBar();
+                    if (supportActionBar != null) {
+                        mActionMode = startSupportActionMode(mReleaseActionModeCallback);
+                        if (mActionMode != null) {
+                            mActionMode.setTag(untaggedRelease);
+                        } else {
+                            Log.w(TAG, "Action mode not started");
+                        }
+                    }
+                }
+            }
+        });
+
+        mUntaggedListFragment.setOnItemLongClickListener(new UntaggedListAdapter.OnItemLongClickListener() {
+            @Override
+            public void onItemLongClick(final UntaggedListAdapter adapter, final UntaggedListAdapter.UntaggedTrack untaggedTrack) {
+                if (mActionMode == null) {
+                    mActionMode = startSupportActionMode(mTrackActionModeCallback);
+                    if (mActionMode != null) {
+                        mActionMode.setTag(untaggedTrack);
+                    } else {
+                        Log.w(TAG, "Action mode not started");
+                    }
+                }
+            }
+        });
+
+        onPageSelected(0);
+
+        mPackageNameToBind = CustomTabsHelper.getPackageNameToUse(this);
+        bindCustomTabsService();
+
+        Intent webServiceIntent = new Intent(this, WebServerService.class);
+        startService(webServiceIntent);
+        bindService(webServiceIntent, this, BIND_AUTO_CREATE);
+
+        onNewIntent(getIntent());
+    }
+
+    @Override
+    protected void onDestroy() {
+        Log.d(TAG, "Destroy");
+        unbindCustomTabsService();
+
+        if (mWebServerMessenger != null) {
+            unbindService(this);
+        }
+
+        super.onDestroy();
+    }
+
+    private void showAddFilesScreen() {
+        Intent intent = new Intent(this, FilePickerActivity.class);
+        intent.putExtra(FilePickerActivity.EXTRA_DIR, Environment.getExternalStorageDirectory());
+        startActivityForResult(intent, CHOOSE_FILE_REQUEST_CODE);
+    }
+
+    private void executeIndeterminateProgressTask(final Runnable runnable) {
+        mProgressViewController.notifyIndeterminateTaskStarted();
+        mExecutor.execute(new Runnable() {
+            @Override
+            public void run() {
+                runnable.run();
+                mProgressViewController.notifyIndeterminateTaskFinished();
+            }
+        });
     }
 
     private CustomTabsSession getSession() {
@@ -299,43 +351,36 @@ public class MainActivity extends AppCompatActivity implements ViewPager.OnPageC
                 .launchUrl(this, uri);
     }
 
-    @Override
-    public void onServiceConnected(CustomTabsClient client) {
-        mCustomTabsClient = client;
-    }
-
-    @Override
-    public void onServiceDisconnected() {
-        mCustomTabsClient = null;
-    }
-
-    private class WebServer extends NanoHTTPD {
-        public WebServer(int port) {
-            super(port);
+    private int getWebServerPort() {
+        if (mWebServerMessenger == null) {
+            Log.e(TAG, "Not bound to service SHIET");
+            return 0;
         }
 
-        public WebServer(String hostname, int port) {
-            super(hostname, port);
+        int port = 0;
+
+        Message msg = Message.obtain();
+        msg.what = WebServerService.MESSAGE_GET_PORT;
+        msg.replyTo = mMessenger;
+
+        try {
+            mWebServerMessenger.send(msg);
+            port = mServerPortResponseQueue.take();
+        } catch (RemoteException | InterruptedException e) {
+            Crashlytics.logException(e);
         }
 
-        @Override
-        public Response serve(IHTTPSession session) {
-            Map<String, String> params = session.getParms();
-            Log.d(TAG, "Serve session; params: " + params);
-
-            mTaggerFragment.onBrowserLookupResult(params.get("id"));
-            return super.serve(session);
-        }
+        return port;
     }
 
-    private static class NavigationCallback extends CustomTabsCallback {
+    private class NavigationCallback extends CustomTabsCallback {
         @Override
         public void onNavigationEvent(int navigationEvent, Bundle extras) {
             Log.w(TAG, "onNavigationEvent: Code = " + navigationEvent);
         }
     }
 
-    private class ReleaseActionMode implements ActionMode.Callback {
+    private class ReleaseActionModeCallback implements ActionMode.Callback {
 
         @Override
         public boolean onCreateActionMode(ActionMode actionMode, Menu menu) {
@@ -350,28 +395,33 @@ public class MainActivity extends AppCompatActivity implements ViewPager.OnPageC
         }
 
         @Override
-        public boolean onActionItemClicked(ActionMode actionMode, MenuItem menuItem) {
+        public boolean onActionItemClicked(final ActionMode actionMode, MenuItem menuItem) {
             final UntaggedListAdapter.UntaggedRelease untaggedRelease = (UntaggedListAdapter.UntaggedRelease) actionMode.getTag();
             final UntaggedListAdapter adapter = mUntaggedListFragment.getAdapter();
 
             switch (menuItem.getItemId()) {
                 case R.id.action_lookup_browser:
-                    Uri.Builder uriBuilder = new Uri.Builder()
-                            .scheme(MUSICBRAINZ_QUERY_SCHEME)
-                            .authority(MUSICBRAINZ_DOMAIN)
-                            .appendPath(MUSICBRAINZ_TAG_LOOKUP)
-                            .appendQueryParameter(MUSICBRAINZ_PARAM_PORT, Integer.toString(mPort));
+                    mExecutor.execute(new Runnable() {
+                        @Override
+                        public void run() {
+                            Uri.Builder uriBuilder = new Uri.Builder()
+                                    .scheme(MUSICBRAINZ_QUERY_SCHEME)
+                                    .authority(MUSICBRAINZ_DOMAIN)
+                                    .appendPath(MUSICBRAINZ_TAG_LOOKUP)
+                                    .appendQueryParameter(MUSICBRAINZ_PARAM_PORT, Integer.toString(getWebServerPort()));
 
-                    if (untaggedRelease.album != null) {
-                        uriBuilder.appendQueryParameter(MUSICBRAINZ_PARAM_RELEASE, untaggedRelease.album);
-                    }
+                            if (untaggedRelease.album != null) {
+                                uriBuilder.appendQueryParameter(MUSICBRAINZ_PARAM_RELEASE, untaggedRelease.album);
+                            }
 
-                    if (untaggedRelease.artist != null) {
-                        uriBuilder.appendQueryParameter(MUSICBRAINZ_PARAM_ARTIST, untaggedRelease.artist);
-                    }
+                            if (untaggedRelease.artist != null) {
+                                uriBuilder.appendQueryParameter(MUSICBRAINZ_PARAM_ARTIST, untaggedRelease.artist);
+                            }
 
-                    launchPage(uriBuilder.build());
-                    actionMode.finish();
+                            launchPage(uriBuilder.build());
+                            actionMode.finish();
+                        }
+                    });
                     return true;
 
                 case R.id.action_tag:
@@ -402,6 +452,10 @@ public class MainActivity extends AppCompatActivity implements ViewPager.OnPageC
                     actionMode.finish();
                     return true;
 
+                case R.id.action_remove:
+                    mUntaggedListFragment.getAdapter().removeUntaggedRelease(untaggedRelease);
+                    return true;
+
                 default:
                     return false;
             }
@@ -428,33 +482,38 @@ public class MainActivity extends AppCompatActivity implements ViewPager.OnPageC
         }
 
         @Override
-        public boolean onActionItemClicked(ActionMode actionMode, MenuItem menuItem) {
+        public boolean onActionItemClicked(final ActionMode actionMode, MenuItem menuItem) {
             final UntaggedListAdapter.UntaggedTrack untaggedTrack = (UntaggedListAdapter.UntaggedTrack) actionMode.getTag();
             final UntaggedListAdapter adapter = mUntaggedListFragment.getAdapter();
 
             switch (menuItem.getItemId()) {
                 case R.id.action_lookup_browser:
-                    Uri.Builder uriBuilder = new Uri.Builder()
-                            .scheme(MUSICBRAINZ_QUERY_SCHEME)
-                            .authority(MUSICBRAINZ_DOMAIN)
-                            .appendPath(MUSICBRAINZ_TAG_LOOKUP)
-                            .appendQueryParameter(MUSICBRAINZ_PARAM_PORT, Integer.toString(mPort))
-                            .appendQueryParameter(MUSICBRAINZ_PARAM_FILENAME, untaggedTrack.file.getName());
+                    mExecutor.execute(new Runnable() {
+                        @Override
+                        public void run() {
+                            Uri.Builder uriBuilder = new Uri.Builder()
+                                    .scheme(MUSICBRAINZ_QUERY_SCHEME)
+                                    .authority(MUSICBRAINZ_DOMAIN)
+                                    .appendPath(MUSICBRAINZ_TAG_LOOKUP)
+                                    .appendQueryParameter(MUSICBRAINZ_PARAM_PORT, Integer.toString(getWebServerPort()))
+                                    .appendQueryParameter(MUSICBRAINZ_PARAM_FILENAME, untaggedTrack.file.getName());
 
-                    if (untaggedTrack.title != null) {
-                        uriBuilder.appendQueryParameter(MUSICBRAINZ_PARAM_TITLE, untaggedTrack.title);
-                    }
+                            if (untaggedTrack.title != null) {
+                                uriBuilder.appendQueryParameter(MUSICBRAINZ_PARAM_TITLE, untaggedTrack.title);
+                            }
 
-                    if (untaggedTrack.album != null) {
-                        uriBuilder.appendQueryParameter(MUSICBRAINZ_PARAM_RELEASE, untaggedTrack.album);
-                    }
+                            if (untaggedTrack.album != null) {
+                                uriBuilder.appendQueryParameter(MUSICBRAINZ_PARAM_RELEASE, untaggedTrack.album);
+                            }
 
-                    if (untaggedTrack.artist != null) {
-                        uriBuilder.appendQueryParameter(MUSICBRAINZ_PARAM_ARTIST, untaggedTrack.artist);
-                    }
+                            if (untaggedTrack.artist != null) {
+                                uriBuilder.appendQueryParameter(MUSICBRAINZ_PARAM_ARTIST, untaggedTrack.artist);
+                            }
 
-                    launchPage(uriBuilder.build());
-                    actionMode.finish();
+                            launchPage(uriBuilder.build());
+                            actionMode.finish();
+                        }
+                    });
                     return true;
 
                 case R.id.action_tag:
@@ -483,6 +542,10 @@ public class MainActivity extends AppCompatActivity implements ViewPager.OnPageC
 
                     mViewPager.setCurrentItem(1, true);
                     actionMode.finish();
+                    return true;
+
+                case R.id.action_remove:
+                    mUntaggedListFragment.getAdapter().removeUntaggedTrack(untaggedTrack);
                     return true;
 
                 default:

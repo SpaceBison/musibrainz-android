@@ -58,7 +58,9 @@ public class TaggerFragment extends Fragment {
         return view;
     }
 
-    public void onBrowserLookupResult(final String id) {
+
+
+    public void loadReleaseTags(final String id) {
         mExecutor.execute(new Runnable() {
             @Override
             public void run() {
@@ -126,23 +128,70 @@ public class TaggerFragment extends Fragment {
                             if (artistCredits != null && !artistCredits.isEmpty()) {
                                 Artist_credit artistCredit = artistCredits.get(0);
                                 Artist artist = artistCredit.getArtist();
-                                tag.setField(FieldKey.ARTIST, artist.getName());
-                                tag.setField(FieldKey.ARTIST_SORT, artist.getSort_name());
-                                tag.setField(FieldKey.MUSICBRAINZ_ARTISTID, artist.getId());
+
+                                final String name = artist.getName();
+                                if (name != null) {
+                                    tag.setField(FieldKey.ARTIST, name);
+                                }
+
+                                final String sortName = artist.getSort_name();
+                                if (sortName != null) {
+                                    tag.setField(FieldKey.ARTIST_SORT, sortName);
+                                }
+
+                                final String id = artist.getId();
+                                if (id != null) {
+                                    tag.setField(FieldKey.MUSICBRAINZ_ARTISTID, id);
+                                }
                             }
 
-                            tag.setField(FieldKey.ALBUM, albumTitle);
-                            tag.setField(FieldKey.ALBUM_ARTIST, albumArtistName);
-                            tag.setField(FieldKey.ALBUM_ARTIST_SORT, albumArtistSort);
+                            if (albumTitle != null) {
+                                tag.setField(FieldKey.ALBUM, albumTitle);
+                            }
 
-                            tag.setField(FieldKey.TITLE, track.getTitle());
-                            tag.setField(FieldKey.TRACK, track.getNumber());
-                            tag.setField(FieldKey.TRACK_TOTAL, Integer.toString(trackTags.size()));
-                            tag.setField(FieldKey.MUSICBRAINZ_TRACK_ID, track.getId());
+                            if (albumArtistName != null) {
+                                tag.setField(FieldKey.ALBUM_ARTIST, albumArtistName);
+                            }
 
-                            tag.setField(FieldKey.YEAR, release.getDate());
-                            tag.setField(FieldKey.MUSICBRAINZ_RELEASE_COUNTRY, release.getCountry());
-                            tag.setField(FieldKey.BARCODE, release.getBarcode());
+                            if (albumArtistSort != null) {
+                                tag.setField(FieldKey.ALBUM_ARTIST_SORT, albumArtistSort);
+                            }
+
+                            final String title = track.getTitle();
+                            if (title != null) {
+                                tag.setField(FieldKey.TITLE, title);
+                            }
+
+                            final String number = track.getNumber();
+                            if (number != null) {
+                                tag.setField(FieldKey.TRACK, number);
+                            }
+
+                            final String trackTotal = Integer.toString(trackTags.size());
+                            if (trackTotal != null) {
+                                tag.setField(FieldKey.TRACK_TOTAL, trackTotal);
+                            }
+
+                            final String id = track.getId();
+                            if (id != null) {
+                                tag.setField(FieldKey.MUSICBRAINZ_TRACK_ID, id);
+                            }
+
+                            final String date = release.getDate();
+                            if (date != null) {
+                                tag.setField(FieldKey.YEAR, date);
+                            }
+
+                            final String country = release.getCountry();
+                            if (country != null) {
+                                tag.setField(FieldKey.MUSICBRAINZ_RELEASE_COUNTRY, country);
+                            }
+
+                            final String barcode = release.getBarcode();
+                            if (barcode != null) {
+                                tag.setField(FieldKey.BARCODE, barcode);
+                            }
+
                             audioFile.setTag(tag);
                             audioFile.commit();
 

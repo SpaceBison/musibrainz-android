@@ -2,12 +2,12 @@ package org.spacebison.musicbrainz;
 
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
-import android.support.v4.app.FragmentPagerAdapter;
+import android.support.v4.app.FragmentStatePagerAdapter;
 
 /**
  * Created by cmb on 16.03.16.
  */
-public class GenericFragmentPagerAdapter extends FragmentPagerAdapter {
+public class GenericFragmentPagerAdapter extends FragmentStatePagerAdapter {
     private final OrderedHashMap<Fragment, String> mFragments = new OrderedHashMap<>();
 
     public GenericFragmentPagerAdapter(FragmentManager fm) {
