@@ -1,4 +1,4 @@
-package org.spacebison.musicbrainz;
+package org.spacebison.musicbrainz.service;
 
 import android.app.Service;
 import android.content.Intent;
@@ -14,6 +14,9 @@ import android.widget.Toast;
 
 import com.crashlytics.android.Crashlytics;
 
+import org.spacebison.musicbrainz.Api;
+import org.spacebison.musicbrainz.MainActivity;
+import org.spacebison.musicbrainz.R;
 import org.spacebison.musicbrainz.api.Release;
 
 import java.io.IOException;

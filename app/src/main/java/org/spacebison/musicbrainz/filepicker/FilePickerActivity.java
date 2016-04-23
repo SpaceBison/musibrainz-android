@@ -1,4 +1,4 @@
-package org.spacebison.musicbrainz;
+package org.spacebison.musicbrainz.filepicker;
 
 import android.content.Intent;
 import android.os.Bundle;
@@ -10,6 +10,9 @@ import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
 import android.view.Menu;
 import android.view.MenuItem;
+
+import org.spacebison.musicbrainz.R;
+import org.spacebison.musicbrainz.adapter.FilePickerAdapter;
 
 import java.io.File;
 import java.io.Serializable;

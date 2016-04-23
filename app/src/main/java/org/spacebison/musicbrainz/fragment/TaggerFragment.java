@@ -1,4 +1,4 @@
-package org.spacebison.musicbrainz;
+package org.spacebison.musicbrainz.fragment;
 
 import android.os.AsyncTask;
 import android.os.Bundle;
@@ -21,6 +21,12 @@ import org.jaudiotagger.audio.exceptions.ReadOnlyFileException;
 import org.jaudiotagger.tag.FieldKey;
 import org.jaudiotagger.tag.Tag;
 import org.jaudiotagger.tag.TagException;
+import org.spacebison.musicbrainz.Api;
+import org.spacebison.musicbrainz.Musicbrainz;
+import org.spacebison.musicbrainz.R;
+import org.spacebison.musicbrainz.util.Utils;
+import org.spacebison.musicbrainz.adapter.TaggerListAdapter;
+import org.spacebison.musicbrainz.adapter.UntaggedListAdapter;
 import org.spacebison.musicbrainz.api.Artist;
 import org.spacebison.musicbrainz.api.Artist_credit;
 import org.spacebison.musicbrainz.api.Release;

@@ -1,4 +1,4 @@
-package org.spacebison.musicbrainz;
+package org.spacebison.musicbrainz.collection;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -10,7 +10,7 @@ import java.util.Set;
 /**
  * Created by cmb on 16.03.16.
  */
-public class OrderedHashMap<K,V> extends HashMap<K, V> {
+public class OrderedHashMap<K, V> extends HashMap<K, V> {
     private final List<K> mKeyList;
 
     public OrderedHashMap() {
@@ -68,7 +68,7 @@ public class OrderedHashMap<K,V> extends HashMap<K, V> {
         return mKeyList.get(location);
     }
 
-    public Map.Entry<K,V> getEntryAt(int location) {
+    public Map.Entry<K, V> getEntryAt(int location) {
         K key = mKeyList.get(location);
         return new SimpleEntry<>(key, get(key));
     }

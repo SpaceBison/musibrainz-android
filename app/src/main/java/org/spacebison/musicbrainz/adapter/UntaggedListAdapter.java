@@ -1,4 +1,4 @@
-package org.spacebison.musicbrainz;
+package org.spacebison.musicbrainz.adapter;
 
 import android.support.v4.content.ContextCompat;
 import android.support.v4.view.ViewCompat;
@@ -19,6 +19,12 @@ import org.jaudiotagger.tag.FieldKey;
 import org.jaudiotagger.tag.KeyNotFoundException;
 import org.jaudiotagger.tag.Tag;
 import org.jaudiotagger.tag.TagException;
+import org.spacebison.musicbrainz.Musicbrainz;
+import org.spacebison.musicbrainz.R;
+import org.spacebison.musicbrainz.util.RecyclerViewAdapterNotifier;
+import org.spacebison.musicbrainz.util.Utils;
+import org.spacebison.musicbrainz.collection.OrderedHashMap;
+import org.spacebison.musicbrainz.collection.OrderedHashSet;
 
 import java.io.File;
 import java.io.IOException;
@@ -354,11 +360,11 @@ public class UntaggedListAdapter extends RecyclerView.Adapter<UntaggedListAdapte
     }
 
     public class UntaggedRelease {
-        File file;
-        String album;
-        String artist;
-        boolean marked = false;
-        ChildAdapter childAdapter = new ChildAdapter(this);
+        public File file;
+        public String album;
+        public String artist;
+        public boolean marked = false;
+        public ChildAdapter childAdapter = new ChildAdapter(this);
 
         public String getName() {
             if (album != null && !album.isEmpty() &&
@@ -387,12 +393,12 @@ public class UntaggedListAdapter extends RecyclerView.Adapter<UntaggedListAdapte
     }
 
     public static class UntaggedTrack {
-        File file;
-        String title;
-        String album;
-        String artist;
-        int track;
-        boolean marked;
+        public File file;
+        public String title;
+        public String album;
+        public String artist;
+        public int track;
+        public boolean marked;
 
         public String updateName() {
             try {

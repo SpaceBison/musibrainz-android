@@ -25,11 +25,11 @@
         </activity>
 
         <activity
-            android:name=".FilePickerActivity"
+            android:name=".filepicker.FilePickerActivity"
             android:theme="@style/AppTheme.Dialog"/>
 
         <service
-            android:name=".WebServerService"
+            android:name=".service.WebServerService"
             android:process=":WebServerService"/>
 
         <meta-data

@@ -1,4 +1,4 @@
-package org.spacebison.musicbrainz;
+package org.spacebison.musicbrainz.util;
 
 import android.content.ComponentName;
 import android.content.Context;

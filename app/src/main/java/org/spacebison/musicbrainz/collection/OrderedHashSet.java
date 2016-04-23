@@ -1,4 +1,4 @@
-package org.spacebison.musicbrainz;
+package org.spacebison.musicbrainz.collection;
 
 import android.support.annotation.NonNull;
 
@@ -47,10 +47,6 @@ public class OrderedHashSet<E> extends HashSet<E> {
         return super.add(object);
     }
 
-    public boolean addAll(int location, Collection<? extends E> collection) {
-        return false;
-    }
-
     @Override
     public void clear() {
         mList.clear();
@@ -61,6 +57,10 @@ public class OrderedHashSet<E> extends HashSet<E> {
     public boolean remove(Object object) {
         mList.remove(object);
         return super.remove(object);
+    }
+
+    public boolean addAll(int location, Collection<? extends E> collection) {
+        return false;
     }
 
     @Override
@@ -83,6 +83,11 @@ public class OrderedHashSet<E> extends HashSet<E> {
     }
 
     @Override
+    public boolean containsAll(Collection<?> collection) {
+        return super.containsAll(collection);
+    }
+
+    @Override
     public boolean retainAll(Collection<?> collection) {
         mList.retainAll(collection);
         return super.retainAll(collection);
@@ -98,11 +103,6 @@ public class OrderedHashSet<E> extends HashSet<E> {
         }
 
         return previous;
-    }
-
-    @Override
-    public boolean containsAll(Collection<?> collection) {
-        return super.containsAll(collection);
     }
 
     public E get(int location) {

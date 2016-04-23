@@ -39,7 +39,15 @@ import com.crashlytics.android.Crashlytics;
 import org.chromium.customtabsclient.shared.CustomTabsHelper;
 import org.chromium.customtabsclient.shared.ServiceConnection;
 import org.chromium.customtabsclient.shared.ServiceConnectionCallback;
+import org.spacebison.musicbrainz.adapter.GenericFragmentPagerAdapter;
+import org.spacebison.musicbrainz.adapter.TaggerListAdapter;
+import org.spacebison.musicbrainz.adapter.UntaggedListAdapter;
 import org.spacebison.musicbrainz.api.Release;
+import org.spacebison.musicbrainz.filepicker.FilePickerActivity;
+import org.spacebison.musicbrainz.fragment.TaggerFragment;
+import org.spacebison.musicbrainz.fragment.TaskProgressListener;
+import org.spacebison.musicbrainz.fragment.UntaggedListFragment;
+import org.spacebison.musicbrainz.service.WebServerService;
 import org.spacebison.progressviewcontroller.ProgressViewController;
 
 import java.io.File;

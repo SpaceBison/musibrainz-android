@@ -1,4 +1,4 @@
-package org.spacebison.musicbrainz;
+package org.spacebison.musicbrainz.fragment;
 
 /**
  * Created by cmb on 11.04.16.

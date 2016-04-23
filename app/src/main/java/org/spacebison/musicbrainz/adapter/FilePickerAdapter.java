@@ -1,4 +1,4 @@
-package org.spacebison.musicbrainz;
+package org.spacebison.musicbrainz.adapter;
 
 import android.graphics.Rect;
 import android.os.Environment;
@@ -12,6 +12,8 @@ import android.widget.CheckBox;
 import android.widget.CompoundButton;
 import android.widget.ImageView;
 import android.widget.TextView;
+
+import org.spacebison.musicbrainz.R;
 
 import java.io.File;
 import java.io.FileFilter;

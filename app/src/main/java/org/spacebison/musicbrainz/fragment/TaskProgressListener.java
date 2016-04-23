@@ -1,4 +1,4 @@
-package org.spacebison.musicbrainz;
+package org.spacebison.musicbrainz.fragment;
 
 import org.spacebison.progressviewcontroller.ProgressViewController;
 

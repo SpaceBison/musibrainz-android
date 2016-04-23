@@ -1,4 +1,4 @@
-package org.spacebison.musicbrainz;
+package org.spacebison.musicbrainz.adapter;
 
 import android.support.v4.view.ViewCompat;
 import android.support.v7.widget.LinearLayoutManager;
@@ -9,11 +9,14 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 
-import org.spacebison.musicbrainz.UntaggedListAdapter.UntaggedRelease;
-import org.spacebison.musicbrainz.UntaggedListAdapter.UntaggedTrack;
+import org.spacebison.musicbrainz.R;
+import org.spacebison.musicbrainz.util.RecyclerViewAdapterNotifier;
+import org.spacebison.musicbrainz.adapter.UntaggedListAdapter.UntaggedRelease;
+import org.spacebison.musicbrainz.adapter.UntaggedListAdapter.UntaggedTrack;
 import org.spacebison.musicbrainz.api.Medium;
 import org.spacebison.musicbrainz.api.Release;
 import org.spacebison.musicbrainz.api.Track;
+import org.spacebison.musicbrainz.collection.OrderedHashSet;
 
 import java.util.ArrayList;
 import java.util.Iterator;

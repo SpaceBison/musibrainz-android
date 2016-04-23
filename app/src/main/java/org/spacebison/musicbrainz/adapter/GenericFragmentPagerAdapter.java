@@ -1,8 +1,10 @@
-package org.spacebison.musicbrainz;
+package org.spacebison.musicbrainz.adapter;
 
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentStatePagerAdapter;
+
+import org.spacebison.musicbrainz.collection.OrderedHashMap;
 
 /**
  * Created by cmb on 16.03.16.
