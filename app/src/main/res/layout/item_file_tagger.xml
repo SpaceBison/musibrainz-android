@@ -53,7 +53,6 @@
             android:layout_height="wrap_content"
             android:layout_marginLeft="@dimen/material_list_item_horizontal_margin"
             android:scaleType="center"
-            android:alpha="0"
             android:src="@drawable/ic_done_24dp"/>
 
     </LinearLayout>

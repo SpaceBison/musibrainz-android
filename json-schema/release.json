@@ -2,6 +2,7 @@
   "$schema": "http://json-schema.org/draft-04/schema#",
   "id": "/",
   "type": "object",
+  "javaInterfaces": [ "java.io.Serializable" ],
   "properties": {
     "aliases": {
       "id": "aliases",
@@ -30,6 +31,7 @@
     "cover-art-archive": {
       "id": "cover-art-archive",
       "type": "object",
+      "javaInterfaces": [ "java.io.Serializable" ],
       "properties": {
         "artwork": {
           "id": "artwork",
@@ -71,6 +73,7 @@
       "items": {
         "id": "0",
         "type": "object",
+        "javaInterfaces": [ "java.io.Serializable" ],
         "properties": {
           "discs": {
             "id": "discs",
@@ -103,6 +106,7 @@
             "items": {
               "id": "12",
               "type": "object",
+              "javaInterfaces": [ "java.io.Serializable" ],
               "properties": {
                 "artist-credit": {
                   "$ref": "#definitions/artist-credit"
@@ -122,6 +126,7 @@
                 "recording": {
                   "id": "recording",
                   "type": "object",
+                  "javaInterfaces": [ "java.io.Serializable" ],
                   "properties": {
                     "aliases": {
                       "id": "aliases",
@@ -186,6 +191,7 @@
     "rating": {
       "id": "rating",
       "type": "object",
+      "javaInterfaces": [ "java.io.Serializable" ],
       "properties": {
         "value": {
           "id": "value",
@@ -203,10 +209,12 @@
       "items": {
         "id": "0",
         "type": "object",
+        "javaInterfaces": [ "java.io.Serializable" ],
         "properties": {
           "area": {
             "id": "area",
             "type": "object",
+            "javaInterfaces": [ "java.io.Serializable" ],
             "properties": {
               "disambiguation": {
                 "id": "disambiguation",
@@ -253,6 +261,7 @@
     "text-representation": {
       "id": "text-representation",
       "type": "object",
+      "javaInterfaces": [ "java.io.Serializable" ],
       "properties": {
         "language": {
           "id": "language",
@@ -276,10 +285,12 @@
       "items": {
         "id": "0",
         "type": "object",
+        "javaInterfaces": [ "java.io.Serializable" ],
         "properties": {
           "artist": {
             "id": "artist",
             "type": "object",
+            "javaInterfaces": [ "java.io.Serializable" ],
             "properties": {
               "aliases": {
                 "id": "aliases",
@@ -287,6 +298,7 @@
                 "items": {
                   "id": "9",
                   "type": "object",
+                  "javaInterfaces": [ "java.io.Serializable" ],
                   "properties": {
                     "locale": {
                       "id": "locale",

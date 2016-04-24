@@ -1,5 +1,6 @@
 package org.spacebison.musicbrainz.collection;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -10,7 +11,7 @@ import java.util.Set;
 /**
  * Created by cmb on 16.03.16.
  */
-public class OrderedHashMap<K, V> extends HashMap<K, V> {
+public class OrderedHashMap<K, V> extends HashMap<K, V> implements Serializable {
     private final List<K> mKeyList;
 
     public OrderedHashMap() {

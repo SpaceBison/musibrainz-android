@@ -2,6 +2,7 @@ package org.spacebison.musicbrainz.collection;
 
 import android.support.annotation.NonNull;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
@@ -12,7 +13,7 @@ import java.util.ListIterator;
 /**
  * Created by cmb on 16.03.16.
  */
-public class OrderedHashSet<E> extends HashSet<E> {
+public class OrderedHashSet<E> extends HashSet<E> implements Serializable {
     private final List<E> mList;
 
     public OrderedHashSet() {

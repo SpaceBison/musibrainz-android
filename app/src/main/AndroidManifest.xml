@@ -29,6 +29,10 @@
             android:theme="@style/AppTheme.Dialog"/>
 
         <service
+            android:name=".service.TaggerService"
+            android:process=":TaggerService"/>
+
+        <service
             android:name=".service.WebServerService"
             android:process=":WebServerService"/>
 

@@ -4,7 +4,7 @@
 
     <item
         android:state_selected="true">
-        <color android:color="@color/dividerColor"/>
+        <color android:color="#1f000000"/>
     </item>
 
     <item>

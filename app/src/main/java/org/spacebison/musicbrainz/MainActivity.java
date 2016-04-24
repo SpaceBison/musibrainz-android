@@ -45,8 +45,8 @@ import org.spacebison.musicbrainz.adapter.UntaggedListAdapter;
 import org.spacebison.musicbrainz.api.Release;
 import org.spacebison.musicbrainz.filepicker.FilePickerActivity;
 import org.spacebison.musicbrainz.fragment.TaggerFragment;
-import org.spacebison.musicbrainz.fragment.TaskProgressListener;
 import org.spacebison.musicbrainz.fragment.UntaggedListFragment;
+import org.spacebison.musicbrainz.service.TaggerService;
 import org.spacebison.musicbrainz.service.WebServerService;
 import org.spacebison.progressviewcontroller.ProgressViewController;
 
@@ -131,7 +131,7 @@ public class MainActivity extends AppCompatActivity implements ViewPager.OnPageC
                                 .setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
                                     @Override
                                     public void onClick(DialogInterface dialog, int which) {
-                                        mTaggerFragment.saveTags(new TaskProgressListener(mProgressViewController, Long.toHexString(System.currentTimeMillis())));
+                                        TaggerService.saveTags(MainActivity.this, mTaggerFragment.getAdapter().getReleaseTags());
                                     }
                                 }).show();
                     }
@@ -427,7 +427,13 @@ public class MainActivity extends AppCompatActivity implements ViewPager.OnPageC
                             }
 
                             launchPage(uriBuilder.build());
-                            actionMode.finish();
+
+                            runOnUiThread(new Runnable() {
+                                @Override
+                                public void run() {
+                                    actionMode.finish();
+                                }
+                            });
                         }
                     });
                     return true;
@@ -461,7 +467,8 @@ public class MainActivity extends AppCompatActivity implements ViewPager.OnPageC
                     return true;
 
                 case R.id.action_remove:
-                    mUntaggedListFragment.getAdapter().removeUntaggedRelease(untaggedRelease);
+                    adapter.removeUntaggedRelease(untaggedRelease);
+                    actionMode.finish();
                     return true;
 
                 default:
@@ -519,7 +526,12 @@ public class MainActivity extends AppCompatActivity implements ViewPager.OnPageC
                             }
 
                             launchPage(uriBuilder.build());
-                            actionMode.finish();
+                            runOnUiThread(new Runnable() {
+                                @Override
+                                public void run() {
+                                    actionMode.finish();
+                                }
+                            });
                         }
                     });
                     return true;
@@ -553,7 +565,80 @@ public class MainActivity extends AppCompatActivity implements ViewPager.OnPageC
                     return true;
 
                 case R.id.action_remove:
-                    mUntaggedListFragment.getAdapter().removeUntaggedTrack(untaggedTrack);
+                    adapter.removeUntaggedTrack(untaggedTrack);
+                    actionMode.finish();
+                    return true;
+
+                default:
+                    return false;
+            }
+        }
+
+        @Override
+        public void onDestroyActionMode(ActionMode actionMode) {
+            mActionMode = null;
+        }
+    }
+
+    private class ReleaseTagActionModeCallback implements ActionMode.Callback {
+
+        @Override
+        public boolean onCreateActionMode(ActionMode actionMode, Menu menu) {
+            MenuInflater inflater = actionMode.getMenuInflater();
+            inflater.inflate(R.menu.action_mode_untagged, menu);
+            return true;
+        }
+
+        @Override
+        public boolean onPrepareActionMode(ActionMode actionMode, Menu menu) {
+            return false;
+        }
+
+        @Override
+        public boolean onActionItemClicked(final ActionMode actionMode, MenuItem menuItem) {
+            final TaggerListAdapter.ReleaseTag releaseTag = (TaggerListAdapter.ReleaseTag) actionMode.getTag();
+            final TaggerListAdapter adapter = mTaggerFragment.getAdapter();
+
+            switch (menuItem.getItemId()) {
+                case R.id.action_remove:
+                    adapter.removeReleaseTag(releaseTag);
+                    actionMode.finish();
+                    return true;
+
+                default:
+                    return false;
+            }
+        }
+
+        @Override
+        public void onDestroyActionMode(ActionMode actionMode) {
+            mActionMode = null;
+        }
+    }
+
+    private class TrackTagActionModeCallback implements ActionMode.Callback {
+
+        @Override
+        public boolean onCreateActionMode(ActionMode actionMode, Menu menu) {
+            MenuInflater inflater = actionMode.getMenuInflater();
+            inflater.inflate(R.menu.action_mode_tagged, menu);
+            return true;
+        }
+
+        @Override
+        public boolean onPrepareActionMode(ActionMode actionMode, Menu menu) {
+            return false;
+        }
+
+        @Override
+        public boolean onActionItemClicked(final ActionMode actionMode, MenuItem menuItem) {
+            final TaggerListAdapter.TrackTag trackTag = (TaggerListAdapter.TrackTag) actionMode.getTag();
+            final TaggerListAdapter adapter = mTaggerFragment.getAdapter();
+
+            switch (menuItem.getItemId()) {
+                case R.id.action_remove:
+                    adapter.removeTrackTag(trackTag);
+                    actionMode.finish();
                     return true;
 
                 default:

@@ -7,6 +7,7 @@ import android.os.IBinder;
 import android.os.Looper;
 import android.os.Message;
 import android.os.Messenger;
+import android.os.Parcelable;
 import android.os.RemoteException;
 import android.support.annotation.Nullable;
 import android.util.Log;
@@ -126,7 +127,7 @@ public class WebServerService extends Service implements Handler.Callback {
                 Release release = Api.getRelease(id);
 
                 final Intent intent = new Intent(WebServerService.this, MainActivity.class);
-                intent.putExtra(MainActivity.EXTRA_RELEASE, release);
+                intent.putExtra(MainActivity.EXTRA_RELEASE, (Parcelable) release);
                 intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
 
                 startActivity(intent);
